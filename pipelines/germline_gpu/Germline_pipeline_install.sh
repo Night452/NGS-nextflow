@@ -9,17 +9,8 @@ echo ""
 
 PROJECT="$HOME/nextflow-project"
 
-# ── 1. Create directory structure ─────────────────────────────────────────────
-echo "[1/4] Creating project directories..."
-mkdir -p "$PROJECT/data/raw"
-mkdir -p "$PROJECT/data/ref"
-mkdir -p "$PROJECT/data/results"
-mkdir -p "$PROJECT/work"
-echo "      Created: $PROJECT/{data/raw,data/ref,data/results,work}"
-echo ""
-
-# ── 2. Pull required Docker images ────────────────────────────────────────────
-echo "[2/4] Pulling Docker images (this may take a while)..."
+# ── 1. Pull required Docker images ────────────────────────────────────────────
+echo "[1/3] Pulling Docker images (this may take a while)..."
 echo ""
 
 echo "  -> nextflow/nextflow:26.04.3"
@@ -38,8 +29,8 @@ echo "  -> biocontainers/samtools:v1.9-4-deb_cv1 (used for re-indexing if needed
 docker pull biocontainers/samtools:v1.9-4-deb_cv1
 echo ""
 
-# ── 3. Check for GPU access ────────────────────────────────────────────────────
-echo "[3/4] Checking GPU availability..."
+# ── 2. Check for GPU access ────────────────────────────────────────────────────
+echo "[2/3] Checking GPU availability..."
 if command -v nvidia-smi &> /dev/null; then
     nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 else
@@ -48,8 +39,8 @@ else
 fi
 echo ""
 
-# ── 4. Reference genome check ──────────────────────────────────────────────────
-echo "[4/4] Checking for reference genome..."
+# ── 3. Reference genome check ──────────────────────────────────────────────────
+echo "[3/3] Checking for reference genome..."
 if [[ -f "$PROJECT/data/ref/reference.fasta" ]]; then
     echo "  Found: $PROJECT/data/ref/reference.fasta"
 else

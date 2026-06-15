@@ -2,6 +2,7 @@
 set -e
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_ROOT="$(realpath "$PROJECT_DIR/../..")"
 COHORT_NAME="$1"
 FASTQ_PATH="$2"
 
@@ -33,36 +34,48 @@ mkdir -p "$RESULTS_DIR/$COHORT_NAME"
 
 cd "$PROJECT_DIR"
 
-# Dynamic resource calculation
 MEM_KB=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
 MEM_GB=$(( MEM_KB / 1024 / 1024 ))
+
+MAX_MEM_GB=64
+
+if [ "$MEM_GB" -gt "$MAX_MEM_GB" ]; then
+    MEM_GB=$MAX_MEM_GB
+fi
+
 CPU_COUNT=$(nproc)
 
-FASTQC_CPUS=$(( CPU_COUNT  ))
-FQ2BAM_CPUS=$(( CPU_COUNT  ))
-HC_CPUS=$(( CPU_COUNT  ))
-GENO_CPUS=$(( CPU_COUNT  ))
-FILTER_CPUS=1
+FASTQC_CPUS=$CPU_COUNT
+FQ2BAM_CPUS=$CPU_COUNT
+HC_CPUS=$CPU_COUNT
+GENO_CPUS=$CPU_COUNT
+VARFILT_CPUS=2
+PASSVCF_CPUS=1
 
 FASTQC_MEM="$(( MEM_GB * 100 / 100 ))"
 [ "$FASTQC_MEM" -lt 2 ] && FASTQC_MEM=2
 
-FQ2BAM_MEM="$(( MEM_GB * 100 / 100 ))"
+FQ2BAM_MEM="$(( MEM_GB * 60 / 100 ))"
 [ "$FQ2BAM_MEM" -lt 8 ] && FQ2BAM_MEM=8
 
-HC_MEM="$(( MEM_GB * 100 / 100 ))"
+HC_MEM="$(( MEM_GB * 60 / 100 ))"
 [ "$HC_MEM" -lt 8 ] && HC_MEM=8
 
-GENO_MEM="$(( MEM_GB * 50 / 100 ))"
+GENO_MEM="$(( MEM_GB * 30 / 100 ))"
 [ "$GENO_MEM" -lt 4 ] && GENO_MEM=4
+
+VARFILT_MEM="$(( MEM_GB * 10 / 100 ))"
+[ "$VARFILT_MEM" -lt 4 ] && VARFILT_MEM=4
+
+PASSVCF_MEM="$(( MEM_GB * 5 / 100 ))"
+[ "$PASSVCF_MEM" -lt 2 ] && PASSVCF_MEM=2
 
 FASTQC_MEM="${FASTQC_MEM} GB"
 FQ2BAM_MEM="${FQ2BAM_MEM} GB"
 HC_MEM="${HC_MEM} GB"
 GENO_MEM="${GENO_MEM} GB"
-FILTER_MEM="$(( MEM_GB * 10 / 100 ))"
-[ "$FILTER_MEM" -lt 2 ] && FILTER_MEM=2
-FILTER_MEM="${FILTER_MEM} GB"
+VARFILT_MEM="${VARFILT_MEM} GB"
+PASSVCF_MEM="${PASSVCF_MEM} GB"
 
 
 MOUNTS=()
@@ -79,8 +92,10 @@ for d in "$PROJECT_DIR" "$FASTQ_PATH" "$REF_DIR" "$RESULTS_DIR"; do
     fi
 done
 
-
-docker run --rm 
+echo "DEBUG MOUNTS = ${MOUNTS[@]}" >&2
+echo "DEBUG PROJECT_DIR = $PROJECT_DIR" >&2
+ls -la "$PROJECT_DIR/Germline_pipeline.nf" >&2
+docker run --rm \
     "${MOUNTS[@]}" \
     -w "$PROJECT_DIR" \
     -v /var/run/docker.sock:/var/run/docker.sock \
@@ -99,8 +114,10 @@ docker run --rm
     --hc_mem "$HC_MEM" \
     --geno_cpus "$GENO_CPUS" \
     --geno_mem "$GENO_MEM" \
-    --filter_cpus "$FILTER_CPUS" \
-    --filter_mem "$FILTER_MEM" \
+    --varfilt_cpus "$VARFILT_CPUS" \
+    --varfilt_mem "$VARFILT_MEM" \
+    --passvcf_cpus "$PASSVCF_CPUS" \
+    --passvcf_mem "$PASSVCF_MEM" \
     -resume
 
 echo ""
@@ -117,8 +134,22 @@ ls -lh "$RESULTS_DIR/$COHORT_NAME/vcf/" 2>/dev/null || echo "  None found"
 echo ""
 echo "Variant counts:"
 RAW=$(grep -vc "^#" "$RESULTS_DIR/$COHORT_NAME/vcf/${COHORT_NAME}.vcf" 2>/dev/null || echo "0")
-PASS=$(grep -vc "^#" "$RESULTS_DIR/$COHORT_NAME/vcf/${COHORT_NAME}.filtered.vcf" 2>/dev/null || echo "0")
+PASS=$(grep -vc "^#" "$RESULTS_DIR/$COHORT_NAME/vcf/${COHORT_NAME}.pass.vcf" 2>/dev/null || echo "0")
 echo "  Raw variants  : $RAW"
 echo "  PASS variants : $PASS"
+echo ""
+echo "Done!"
+
+
+# Remove old Nextflow work directories (>7 days old)
+find "$PROJECT_DIR/work" \
+    -mindepth 1 \
+    -maxdepth 1 \
+    -type d \
+    -mtime +7 \
+    -exec rm -rf {} +
+
+echo "Old work directories cleaned."
+
 echo ""
 echo "Done!"

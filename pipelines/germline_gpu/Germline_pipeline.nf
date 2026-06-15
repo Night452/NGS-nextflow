@@ -3,7 +3,7 @@
 /*
  * Germline Variant Calling Pipeline — NVIDIA Parabricks (GPU-accelerated)
  * Supports single-sample and cohort calling
- * Steps: FastQC → fq2bam → HaplotypeCaller (GVCF) → GenotypeGVCFs → Filter VCF
+ * Steps: FastQC → fq2bam → HaplotypeCaller (GVCF) → GenotypeGVCFs → Filtered VCF → PASS VCF
  */
 
 nextflow.enable.dsl = 2
@@ -173,25 +173,71 @@ process GENOTYPE_GVCFS {
     """
 }
 
-// ── Process 5: Filter VCF ─────────────────────────────────────────────────────
-process FILTER_VCF {
+// ── Process 5: Variant Filtration ─────────────────────────────────────────────
+process VARIANT_FILTRATION {
+
     publishDir "${params.outdir}/vcf", mode: 'copy'
-    container 'biocontainers/bcftools:v1.9-1-deb_cv1'
+
+    container 'broadinstitute/gatk:4.6.2.0'
+
     errorStrategy 'retry'
     maxRetries 2
 
     input:
     path vcf
+    path reference
+    path ref_fai
+    path ref_dict
 
     output:
     path "${params.cohort_name}.filtered.vcf", emit: filtered_vcf
 
     script:
     """
-    bcftools view -f PASS ${vcf} > ${params.cohort_name}.filtered.vcf
+    gatk VariantFiltration \
+        -R ${reference} \
+        -V ${vcf} \
+        -O ${params.cohort_name}.filtered.vcf \
+        --filter-expression "QD < 2.0" \
+        --filter-name "LowQD" \
+        --filter-expression "FS > 60.0" \
+        --filter-name "StrandBias" \
+        --filter-expression "MQ < 40.0" \
+        --filter-name "LowMQ"
 
-    PASS_COUNT=\$(grep -vc "^#" ${params.cohort_name}.filtered.vcf || true)
-    echo "INFO: Filter complete — \${PASS_COUNT} PASS variants"
+    [ -s "${params.cohort_name}.filtered.vcf" ] || {
+        echo "ERROR: empty filtered VCF"
+        exit 1
+    }
+    """
+}
+
+
+process PASS_VCF {
+
+    publishDir "${params.outdir}/vcf", mode: 'copy'
+
+    container 'biocontainers/bcftools:v1.9-1-deb_cv1'
+
+    errorStrategy 'retry'
+    maxRetries 2
+
+    input:
+    path filtered_vcf
+
+    output:
+    path "${params.cohort_name}.pass.vcf", emit: pass_vcf
+
+    script:
+    """
+    bcftools view \
+        -f PASS \
+        ${filtered_vcf} \
+        > ${params.cohort_name}.pass.vcf
+
+    PASS_COUNT=\$(grep -vc "^#" ${params.cohort_name}.pass.vcf || true)
+
+    echo "INFO: PASS variants = \${PASS_COUNT}"
     """
 }
 
@@ -234,11 +280,14 @@ workflow {
     FQ2BAM          ( read_pairs_ch, ref, ref_fai, ref_dict )
     HAPLOTYPE_CALLER( FQ2BAM.out.bam_bai, ref, ref_fai, ref_dict )
 
-    // Wait for ALL 3 GVCFs before joint genotyping
+    // Wait for ALL GVCFs before joint genotyping
     all_gvcfs_ch = HAPLOTYPE_CALLER.out.gvcf
         .map    { sample_id, gvcf -> gvcf }
         .collect()
 
+    // FIX: GENOTYPE_GVCFS was never invoked — added the missing call
     GENOTYPE_GVCFS( all_gvcfs_ch, ref, ref_fai, ref_dict )
-    FILTER_VCF    ( GENOTYPE_GVCFS.out.cohort_vcf )
+
+   VARIANT_FILTRATION(GENOTYPE_GVCFS.out.cohort_vcf,ref,ref_fai,ref_dict)
+    PASS_VCF( VARIANT_FILTRATION.out.filtered_vcf )
 }
