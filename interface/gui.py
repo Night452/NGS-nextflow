@@ -70,29 +70,36 @@ QLineEdit:focus {
     border: 1px solid #4da6ff;
 }
 QPushButton {
-    background-color: #444444;
-    border: 1px solid #555555;
+    background-color: #333333;
+    border: 1px solid #444444;
     border-radius: 6px;
     padding: 8px 16px;
     color: #ffffff;
     font-weight: bold;
 }
 QPushButton:hover {
-    background-color: #5a5a5a;
-    border: 1px solid #4da6ff;
+    background-color: #4a4a4a;
+    border: 1px solid #666666;
 }
 QPushButton:pressed {
     background-color: #2a2a2a;
 }
+QPushButton:disabled {
+    background: #222222;
+    color: #666666;
+}
 QCheckBox {
+    background-color: #2a2a2a;
+    border: 1px solid #444444;
+    border-radius: 6px;
+    padding: 8px 12px;
     font-size: 14px;
     font-weight: bold;
     color: #ffffff;
-    padding: 4px;
 }
 QCheckBox::indicator {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
 }
 QTextEdit {
     background-color: #121212;
@@ -298,18 +305,18 @@ class PipelineTab(QWidget):
         
         if "Germline" in self.pipeline_type:
             self.btn_build = QPushButton("Build Reference Indexes")
-            self.btn_build.setStyleSheet("background-color: #4a4a4a; color: #888888;")
+            self.btn_build.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffb703, stop:1 #fb8500); color: white; font-weight: bold; padding: 10px; border-radius: 6px; border: none;")
             self.btn_build.setEnabled(False)
             self.btn_build.clicked.connect(self.build_indexes)
             action_layout.addWidget(self.btn_build)
 
         self.btn_run = QPushButton("Run Pipeline")
-        self.btn_run.setStyleSheet("background-color: #0078d7; color: white; font-weight: bold; padding: 10px;")
+        self.btn_run.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #00b4d8, stop:1 #0077b6); color: white; font-weight: bold; padding: 10px; border-radius: 6px; border: none;")
         self.btn_run.clicked.connect(self.run_pipeline)
         action_layout.addWidget(self.btn_run)
 
         self.btn_stop = QPushButton("Stop")
-        self.btn_stop.setStyleSheet("background-color: #c50f1f; color: white; font-weight: bold; padding: 10px;")
+        self.btn_stop.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff4d6d, stop:1 #c9184a); color: white; font-weight: bold; padding: 10px; border-radius: 6px; border: none;")
         self.btn_stop.setEnabled(False)
         self.btn_stop.clicked.connect(self.parent_gui.stop_process)
         action_layout.addWidget(self.btn_stop)
@@ -333,10 +340,10 @@ class PipelineTab(QWidget):
         if hasattr(self, 'btn_build'):
             if state == 2:
                 self.btn_build.setEnabled(False)
-                self.btn_build.setStyleSheet("background-color: #4a4a4a; color: #888888;")
+                self.btn_build.setStyleSheet("background: #2a2a2a; color: #666666; border: none;")
             else:
                 self.btn_build.setEnabled(True)
-                self.btn_build.setStyleSheet("background-color: #d39e00; color: white; font-weight: bold; padding: 10px;")
+                self.btn_build.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffb703, stop:1 #fb8500); color: white; font-weight: bold; padding: 10px; border-radius: 6px; border: none;")
 
     def build_indexes(self):
         if not self.input_ref_name.text() or not self.input_ref_dir.text():
@@ -420,7 +427,7 @@ class NextflowGUI(QMainWindow):
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #4da6ff;")
         
         btn_monitor = QPushButton("📊 Resource Monitor")
-        btn_monitor.setStyleSheet("background-color: #333333; font-weight: bold; padding: 10px 20px; border-radius: 8px;")
+        btn_monitor.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f72585, stop:1 #7209b7); color: white; font-weight: bold; padding: 10px 20px; border-radius: 8px; border: none;")
         btn_monitor.clicked.connect(self.show_monitor)
         
         top_bar.addWidget(title)

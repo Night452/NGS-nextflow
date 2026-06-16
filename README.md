@@ -1,18 +1,29 @@
-# Nextflow Germline Variant Calling Pipeline
+# Nextflow Genomics Suite
 
-This project provides a containerized, Nextflow-based bioinformatics pipeline for **Germline Variant Calling**. It is designed to take raw paired-end FASTQ reads and process them through to a filtered, high-quality cohort VCF. 
+This project provides containerized, Nextflow-based bioinformatics pipelines for **Germline Variant Calling** and **ChIP-seq Peak Calling**. It features a modern, tabbed PySide6 Desktop GUI for easy configuration, resource allocation, and execution.
 
-The pipeline supports two execution modes:
-1. **CPU-only execution**: Utilizes standard open-source tools (BWA, GATK, FastQC, BCFtools).
-2. **GPU-accelerated execution**: Utilizes NVIDIA Clara Parabricks for significantly faster processing.
+The pipelines support both CPU-only execution and GPU-accelerated execution using NVIDIA Clara Parabricks for blazing-fast performance. All dependencies are containerized via Docker, ensuring reproducibility.
 
-All dependencies are containerized via Docker, ensuring reproducibility and easy deployment.
+---
+
+## 🖥️ Graphical User Interface (GUI)
+
+The primary way to interact with the pipelines is through the modern PySide6 desktop application (`interface/gui.py`). 
+
+### Features
+- **Independent Tabs**: Each pipeline (Germline CPU, Germline GPU, ChIP-seq GPU) has a dedicated, isolated tab.
+- **Resource Monitor**: A detached pop-up window to track live CPU/RAM usage and configure Nextflow CPU/Memory allocations.
+- **Low Memory Mode**: A built-in toggle for NVIDIA Parabricks pipelines to support systems with `<12GB VRAM` without crashing.
+- **Pre-built Indexing**: 1-click BWA reference index building directly from the GUI.
+
+To run the GUI:
+```bash
+python interface/gui.py
+```
 
 ---
 
 ## 🗺️ System Map & Script Interactions
-
-The following map illustrates how the various shell scripts and Nextflow scripts interact with one another across the project.
 
 ```mermaid
 graph TD
@@ -23,43 +34,59 @@ graph TD
         cleanup[cleanup.sh]
     end
 
-    subgraph "CPU Pipeline (pipelines/germline_cpu)"
+    subgraph "GUI Interface"
+        gui[gui.py]
+    end
+
+    subgraph "Germline CPU Pipeline"
         cpu_run[Germline_CPU_run.sh]
         cpu_nf[Germline_CPU.nf]
         cpu_config[Germline_CPU.config]
-        cpu_menu[Germline_CPU_menu.sh]
     end
 
-    subgraph "GPU Pipeline (pipelines/germline_gpu)"
+    subgraph "Germline GPU Pipeline"
         gpu_run[Germline_pipeline_run.sh]
         gpu_nf[Germline_pipeline.nf]
         gpu_config[Germline_pipeline.config]
-        gpu_menu[Germline_pipeline_menu.sh]
     end
 
-    %% Interactions
+    subgraph "ChIP-seq GPU Pipeline"
+        chip_run[CHIPseq_GPU_run.sh]
+        chip_nf[CHIPseq_GPU.nf]
+        chip_config[CHIPseq_GPU.config]
+    end
+
+    %% User interactions
     User -->|Runs| install
     User -->|Runs| cleanup
+    User -->|Runs| gui
     
-    User -->|Runs| cpu_menu
-    cpu_menu -->|Invokes| cpu_run
-    User -->|Runs| cpu_run
-    cpu_run -->|Executes| cpu_nf
-    cpu_nf -.->|Uses| cpu_config
-    
-    User -->|Runs| gpu_menu
-    gpu_menu -->|Invokes| gpu_run
-    User -->|Runs| gpu_run
-    gpu_run -->|Executes| gpu_nf
-    gpu_nf -.->|Uses| gpu_config
+    User -->|Or Runs| cpu_run
+    User -->|Or Runs| gpu_run
+    User -->|Or Runs| chip_run
 
-    %% Descriptions
+    %% GUI invoking run scripts
+    gui -->|Invokes| cpu_run
+    gui -->|Invokes| gpu_run
+    gui -->|Invokes| chip_run
+
+    %% Run scripts executing NF
+    cpu_run -->|Executes| cpu_nf
+    gpu_run -->|Executes| gpu_nf
+    chip_run -->|Executes| chip_nf
+
+    %% NF using Config
+    cpu_nf -.->|Uses| cpu_config
+    gpu_nf -.->|Uses| gpu_config
+    chip_nf -.->|Uses| chip_config
+
+    %% Styling
     classDef default fill:#808080,stroke:#333,stroke-width:2px,color:#ffffff,font-weight:bold;
     classDef script fill:#808080,stroke:#333,stroke-width:2px,color:#ffffff,font-weight:bold;
     classDef nf fill:#808080,stroke:#333,stroke-width:2px,color:#ffffff,font-weight:bold;
     
-    class install,cleanup,cpu_run,gpu_run,cpu_menu,gpu_menu script;
-    class cpu_nf,gpu_nf,cpu_config,gpu_config nf;
+    class install,cleanup,gui,cpu_run,gpu_run,chip_run script;
+    class cpu_nf,gpu_nf,chip_nf,cpu_config,gpu_config,chip_config nf;
 ```
 
 ## 📁 Project Structure
@@ -72,41 +99,49 @@ Nextflow/
 ├── Data/                     # Default data directory
 │   ├── Raw/                  # FastQ files go here
 │   └── Ref/                  # Reference genomes go here
-├── interface/                # Graphical & Terminal Interfaces
+├── interface/                # Graphical Interfaces
 │   ├── gui.py                # PySide6 Desktop GUI
-│   ├── main_menu.sh          # Terminal Wizard interface
 │   └── requirements.txt      # GUI Python dependencies
 ├── pipelines/                
 │   ├── germline_cpu/         # CPU-only (BWA/GATK) pipeline scripts
-│   │   ├── Germline_CPU.config
-│   │   ├── Germline_CPU.nf
-│   │   ├── Germline_CPU_menu.sh
-│   │   ├── Germline_CPU_reference_builder.sh
-│   │   └── Germline_CPU_run.sh
-│   └── germline_gpu/         # GPU-accelerated (Parabricks) pipeline scripts
-│       ├── Germline_pipeline.config
-│       ├── Germline_pipeline.nf
-│       ├── Germline_pipeline_menu.sh
-│       └── Germline_pipeline_run.sh
-├── results/                  # Pipeline outputs (BAMs, VCFs)
+│   ├── germline_gpu/         # GPU-accelerated (Parabricks) variant calling
+│   └── chipseq/              # GPU-accelerated ChIP-seq peak calling
+├── results/                  # Pipeline outputs (BAMs, VCFs, Peaks)
 └── work/                     # Nextflow intermediate working directory
 ```
 
-### Script Directory
+### Detailed Script Lifecycle
 
-- **`install.sh`**: Global installation script. Creates required directories (`Data/`, `results/`, `work/`, `logs/`), makes scripts executable, and pulls required Docker container images.
-- **`cleanup.sh`**: Maintenance utility to remove old Nextflow work directories, cached data, old logs, and dangling Docker images.
-- **`Germline_CPU_run.sh` / `Germline_pipeline_run.sh`**: The core launcher scripts. They validate inputs (FASTQ, reference directories), index references if necessary (CPU only), calculate optimal CPU and memory limits dynamically based on the host system, map the correct Docker volume mounts, and execute the respective Nextflow `.nf` file.
-- **`Germline_CPU.nf` / `Germline_pipeline.nf`**: The Nextflow DSL2 workflows orchestrating the bioinformatics tools.
+When you trigger a pipeline run, the scripts interact in a specific, layered sequence to move from a graphical button click down to a containerized GPU process:
+
+1. **The Interface Layer (`gui.py`)**
+   - **Role:** Captures user inputs (paths, names) and translates graphical slider values into strict environment variables (e.g., `MAX_CPUS`, `MAX_MEM_GB`, `LOW_MEMORY`).
+   - **Action:** Spawns a background subprocess that executes the bash runner script for the selected pipeline.
+
+2. **The Runner Layer (`*_run.sh`)**
+   - **Role:** The bridge between your host operating system and Nextflow/Docker.
+   - **Action:** 
+     - Parses the environment variables passed down by the GUI.
+     - Calculates dynamic resource allocations (e.g., preventing FastQC from requesting more memory than available).
+     - Constructs the `docker run` command, explicitly mapping (`-v`) your Windows directories to Linux directories inside the container.
+     - Kicks off the Nextflow executable.
+
+3. **The Orchestrator Layer (`*.nf` & `*.config`)**
+   - **Role:** Nextflow's domain. The `.nf` file defines the pipeline logic, and the `.config` defines the default resource profiles.
+   - **Action:** Nextflow reads the `.nf` file to understand the dependency graph (e.g., "FASTP must finish before FQ2BAM starts"). It dynamically creates isolated, hashed `work/` directories for every single process to prevent data collisions.
+
+4. **The Execution Layer (Inside the Containers)**
+   - **Role:** The actual bioinformatics tools (Parabricks, BWA, GATK).
+   - **Action:** Nextflow mounts the specific `work/` directory into an isolated Docker container. Tools like `fq2bam` execute directly on your GPU inside the container, read the files, output a BAM, and exit. Nextflow detects the exit code, flags it as a success (✔), and eventually moves the final data to the `results/` folder.
 
 ---
 
 ## ⚙️ Pipeline Flowcharts
 
-These flowcharts break down exactly what each Nextflow script (`.nf`) does under the hood to process the bioinformatics pipeline.
+These flowcharts break down exactly what each Nextflow script (`.nf`) does under the hood.
 
-### 1. CPU Pipeline (`Germline_CPU.nf`)
-This pipeline relies on traditional CPU tools: **FastQC**, **BWA**, and **GATK 4**.
+### 1. Germline CPU Pipeline (`Germline_CPU.nf`)
+Utilizes traditional CPU tools: **FastQC**, **BWA**, and **GATK 4**.
 
 ```mermaid
 graph TD
@@ -162,8 +197,8 @@ graph TD
     class FASTQC,BWA,SORT,MARKDUP,INDEX,HC,GENO,FILT,PASS process;
 ```
 
-### 2. GPU Pipeline (`Germline_pipeline.nf`)
-This pipeline utilizes **NVIDIA Clara Parabricks** to significantly accelerate standard steps (FQ2BAM replaces BWA + Sorting + MarkDuplicates).
+### 2. Germline GPU Pipeline (`Germline_pipeline.nf`)
+Utilizes **NVIDIA Clara Parabricks** to significantly accelerate standard steps.
 
 ```mermaid
 graph TD
@@ -213,26 +248,72 @@ graph TD
     class FASTQC,FQ2BAM,HC,GENO,FILT,PASS process;
 ```
 
+### 3. ChIP-seq GPU Pipeline (`CHIPseq_GPU.nf`)
+Utilizes **Fastp** for trimming, **NVIDIA Parabricks fq2bam** for alignment, and **MACS2** for peak calling. Supports Input DNA controls via a `samplesheet.csv`.
+
+```mermaid
+graph TD
+    %% Inputs
+    Reads[/Raw FASTQ Reads/]
+    Samplesheet[/Samplesheet CSV Optional/]
+    Ref[/Reference Genome .fasta/]
+    
+    %% Processes
+    FASTQC[FastQC: Quality Control]
+    FASTP[Fastp: Read Trimming]
+    FQ2BAM[FQ2BAM: GPU Align, Sort & MarkDup]
+    MACS2[MACS2: Narrow Peak Calling]
+    
+    %% Outputs
+    QC_OUT[/QC Reports/]
+    TRIM_OUT[/Trimmed FASTQ/]
+    BAM_OUT[/Processed BAMs/]
+    PEAK_OUT[/MACS2 Peaks & BedGraph/]
+
+    %% Flow
+    Reads --> FASTQC
+    FASTQC --> QC_OUT
+    
+    Reads --> FASTP
+    FASTP --> TRIM_OUT
+    
+    TRIM_OUT --> FQ2BAM
+    Ref --> FQ2BAM
+    FQ2BAM --> BAM_OUT
+    
+    BAM_OUT --> MACS2
+    Samplesheet -.->|Pairs Treatment w/ Control| MACS2
+    MACS2 --> PEAK_OUT
+    
+    %% Styling
+    classDef default fill:#808080,stroke:#333,stroke-width:2px,color:#ffffff,font-weight:bold;
+    classDef process fill:#808080,stroke:#333,stroke-width:2px,color:#ffffff,font-weight:bold;
+    class FASTQC,FASTP,FQ2BAM,MACS2 process;
+```
+
 ---
 
-## 🚀 How to Run
+## 🚀 How to Run Manually (Without GUI)
 
+If you prefer the terminal, you can execute the runner scripts directly.
 1. **Install dependencies**:
    ```bash
    ./install.sh
    ```
 2. **Execute a Pipeline**:
-   Navigate to the respective pipeline directory and execute the run script:
    ```bash
-   # CPU Pipeline
-   cd pipelines/germline_cpu
-   ./Germline_CPU_run.sh <cohort_name> <path_to_fastqs>
+   export REF_DIR="/path/to/reference"
+   export RESULTS_DIR="/path/to/results"
+   
+   # Germline CPU
+   bash pipelines/germline_cpu/Germline_CPU_run.sh <cohort_name> <path_to_fastqs>
 
-   # GPU Pipeline
-   cd pipelines/germline_gpu
-   ./Germline_pipeline_run.sh <cohort_name> <path_to_fastqs>
+   # Germline GPU
+   bash pipelines/germline_gpu/Germline_pipeline_run.sh <cohort_name> <path_to_fastqs>
+   
+   # ChIP-seq GPU
+   bash pipelines/chipseq/CHIPseq_GPU_run.sh <project_name> <path_to_fastqs> <path_to_samplesheet_optional>
    ```
-   *(Ensure `REF_DIR` and `RESULTS_DIR` environment variables are set or use the interactive menu scripts).*
 
 3. **Cleanup**:
    ```bash
