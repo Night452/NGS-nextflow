@@ -1,121 +1,57 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "============================================"
 echo " BIOINFORMATICS APPLICATION"
 echo " Global Installation"
 echo "============================================"
-echo ""
+echo
 
-PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo "[1/4] Creating directories..."
 
-echo "[1/5] Creating application directories..."
-
-mkdir -p "$PROJECT"
-
-mkdir -p "$PROJECT/data/raw"
-mkdir -p "$PROJECT/data/ref"
-
+mkdir -p "$PROJECT/Data/Raw"
+mkdir -p "$PROJECT/Data/Ref"
 mkdir -p "$PROJECT/results"
 mkdir -p "$PROJECT/work"
 mkdir -p "$PROJECT/logs"
 
-mkdir -p "$PROJECT/pipelines"
-
-mkdir -p "$PROJECT/pipelines/germline_gpu"
-mkdir -p "$PROJECT/pipelines/germline_cpu"
-mkdir -p "$PROJECT/pipelines/rnaseq"
-mkdir -p "$PROJECT/pipelines/chipseq"
-
 echo "Done."
-echo ""
+echo
 
-echo "[2/5] Making shell scripts executable..."
+echo "[2/4] Making scripts executable..."
 
-find "$PROJECT" 
+find "$PROJECT/pipelines" 
 -type f 
 -name "*.sh" 
--exec chmod +x {} ; 2>/dev/null || true
+-exec chmod +x {} ;
+
+chmod +x "$PROJECT/install.sh"
+chmod +x "$PROJECT/cleanup.sh"
 
 echo "Done."
-echo ""
+echo
 
-echo "[3/5] Checking Docker..."
+echo "[3/4] Verifying Docker..."
 
-if ! command -v docker >/dev/null 2>&1; then
-echo "ERROR: Docker not found."
-exit 1
-fi
+docker info >/dev/null
 
-docker --version
-
-echo ""
 echo "Docker OK."
-echo ""
+echo
 
-echo "[4/5] Pulling common images..."
+echo "[4/4] Pulling container images..."
 
 docker pull nextflow/nextflow:26.04.3
+docker pull biocontainers/fastqc:v0.11.9_cv8
+docker pull biocontainers/bwa:v0.7.17_cv1
+docker pull broadinstitute/gatk:4.6.2.0
 
-echo ""
-echo "Common images installed."
-echo ""
-
-echo "[5/5] Running pipeline installers..."
-
-export PROJECT
-
-PIPELINE_INSTALLERS=$(find "$PROJECT/pipelines" 
--type f 
--name "*_install.sh" 2>/dev/null || true)
-
-if [[ -z "$PIPELINE_INSTALLERS" ]]; then
-echo "No pipeline installers found."
-else
-while read -r installer
-do
-[[ -z "$installer" ]] && continue
-
-```
-    echo ""
-    echo "--------------------------------------------"
-    echo "Running:"
-    echo "  $installer"
-    echo "--------------------------------------------"
-
-    bash "$installer"
-done <<< "$PIPELINE_INSTALLERS"
-```
-
-fi
-
-echo ""
-echo "============================================"
-echo " INSTALLATION COMPLETE"
-echo "============================================"
-echo ""
-
-echo "Application root:"
-echo "  $PROJECT"
-echo ""
-
-echo "Directory layout:"
-echo "  $PROJECT/data"
-echo "  $PROJECT/results"
-echo "  $PROJECT/work"
-echo "  $PROJECT/logs"
-echo "  $PROJECT/pipelines"
-echo ""
-
-echo "Next steps:"
-echo "  1. Copy pipeline folders into:"
-echo "     $PROJECT/pipelines/"
-echo ""
-echo "  2. Place reference genomes in:"
-echo "     $PROJECT/data/ref/"
-echo ""
-echo "  3. Place FASTQs wherever desired"
-echo ""
-echo "  4. Run the desired pipeline menu script"
-echo ""
-echo "Done."
+echo
+echo "Installation complete."
+echo
+echo "Host requirements:"
+echo "  - Docker"
+echo "  - WSL2 (Windows only)"
+echo
+echo "All tools are containerized."
