@@ -16,9 +16,16 @@ if [[ -z "$RESULTS_DIR" ]]; then
     echo "ERROR: RESULTS_DIR is not set."
     exit 1
 fi
-if [[ ! -f "$REF_DIR/reference.fasta" ]]; then
-    echo "ERROR: reference.fasta not found in $REF_DIR"
-    exit 1
+REF_NAME="${REF_NAME:-reference}"
+REF_FASTA="$REF_NAME.fasta"
+
+if [[ ! -f "$REF_DIR/$REF_FASTA" ]]; then
+    if [[ -f "$REF_DIR/$REF_NAME.fa" ]]; then
+        REF_FASTA="$REF_NAME.fa"
+    else
+        echo "ERROR: $REF_FASTA or $REF_NAME.fa not found in $REF_DIR"
+        exit 1
+    fi
 fi
 
 echo "============================================"
@@ -34,16 +41,19 @@ mkdir -p "$RESULTS_DIR/$COHORT_NAME"
 
 cd "$PROJECT_DIR"
 
-MEM_KB=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
-MEM_GB=$(( MEM_KB / 1024 / 1024 ))
-
-MAX_MEM_GB=64
-
-if [ "$MEM_GB" -gt "$MAX_MEM_GB" ]; then
+if [[ -n "${MAX_MEM_GB:-}" && "$MAX_MEM_GB" -gt 0 ]]; then
     MEM_GB=$MAX_MEM_GB
+else
+    MEM_KB=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
+    MEM_GB=$(( MEM_KB / 1024 / 1024 ))
+    if [ "$MEM_GB" -gt 64 ]; then MEM_GB=64; fi
 fi
 
-CPU_COUNT=$(nproc)
+if [[ -n "${MAX_CPUS:-}" && "$MAX_CPUS" -gt 0 ]]; then
+    CPU_COUNT=$MAX_CPUS
+else
+    CPU_COUNT=$(nproc)
+fi
 
 FASTQC_CPUS=$CPU_COUNT
 FQ2BAM_CPUS=$CPU_COUNT
@@ -103,7 +113,7 @@ docker run --rm \
     nextflow/nextflow:26.04.3 \
     nextflow run Germline_pipeline.nf -c Germline_pipeline.config \
     --reads "${FASTQ_PATH}/*_R{1,2}.fastq.gz" \
-    --reference "$REF_DIR/reference.fasta" \
+    --reference "$REF_DIR/$REF_FASTA" \
     --outdir "$RESULTS_DIR/$COHORT_NAME" \
     --cohort_name "$COHORT_NAME" \
     --fastqc_cpus "$FASTQC_CPUS" \

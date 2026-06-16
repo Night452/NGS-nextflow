@@ -106,13 +106,20 @@ while true; do
 
     # Reference folder
     echo ""
+    echo "Enter the name of your reference file (e.g., hg38.fasta): "
+    read -p "Reference file name: " REF_NAME
+    while [[ -z "$REF_NAME" ]]; do
+        read -p "Reference file name: " REF_NAME
+    done
+
+    echo ""
     echo "Enter the path to your reference genome folder."
-    echo "Must contain: reference.fasta"
-    echo "(reference.fasta.fai, reference.dict, and the BWA index files"
+    echo "Must contain: $REF_NAME"
+    echo "($REF_NAME.fai, .dict, and the BWA index files"
     echo " .bwt/.amb/.ann/.pac/.sa will be built automatically if missing)"
     echo "Type 'no' to exit."
     echo ""
-    REF_DIR=$(ask_for_dir "Reference folder path: " "reference.fasta")
+    REF_DIR=$(ask_for_dir "Reference folder path: " "$REF_NAME")
 
     # FASTQ folder
     echo ""
@@ -150,7 +157,7 @@ while true; do
     echo "============================================"
     echo ""
 
-    REF_DIR="$REF_DIR" RESULTS_DIR="$RESULTS_DIR" \
+    REF_DIR="$REF_DIR" REF_NAME="$REF_NAME" RESULTS_DIR="$RESULTS_DIR" \
         bash "$PROJECT_DIR/Germline_CPU_run.sh" "$COHORT_NAME" "$FASTQ_PATH"
     EXIT_CODE=$?
 

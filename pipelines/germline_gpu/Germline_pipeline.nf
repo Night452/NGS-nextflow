@@ -57,6 +57,11 @@ process FQ2BAM {
     path reference
     path ref_fai
     path ref_dict
+    path ref_bwt
+    path ref_ann
+    path ref_amb
+    path ref_pac
+    path ref_sa
 
     output:
     tuple val(sample_id),
@@ -217,7 +222,7 @@ process PASS_VCF {
 
     publishDir "${params.outdir}/vcf", mode: 'copy'
 
-    container 'biocontainers/bcftools:v1.9-1-deb_cv1'
+    container 'staphb/bcftools:1.20'
 
     errorStrategy 'retry'
     maxRetries 2
@@ -254,11 +259,15 @@ workflow {
     // FIX: Validation now inside workflow block — DSL2 forbids top-level statements
     def ref      = file(params.reference)
     def ref_fai  = file("${params.reference}.fai")
-    def ref_dict = file(
-        params.reference.toString()
-            .replaceAll(/\.fasta$/, ".dict")
-            .replaceAll(/\.fa$/,    ".dict")
-    )
+    def ref_base = params.reference.toString().replaceAll(/\.fasta$/, "").replaceAll(/\.fa$/, "")
+
+    def ref_dict = file("${ref_base}.dict")
+
+    def ref_bwt = file("${ref_base}.bwt").exists() ? file("${ref_base}.bwt") : file("${params.reference}.bwt")
+    def ref_ann = file("${ref_base}.ann").exists() ? file("${ref_base}.ann") : file("${params.reference}.ann")
+    def ref_amb = file("${ref_base}.amb").exists() ? file("${ref_base}.amb") : file("${params.reference}.amb")
+    def ref_pac = file("${ref_base}.pac").exists() ? file("${ref_base}.pac") : file("${params.reference}.pac")
+    def ref_sa  = file("${ref_base}.sa").exists()  ? file("${ref_base}.sa")  : file("${params.reference}.sa")
 
     log.info """
     ============================================
@@ -277,7 +286,7 @@ workflow {
 
     // Per-sample parallel steps
     FASTQC          ( read_pairs_ch )
-    FQ2BAM          ( read_pairs_ch, ref, ref_fai, ref_dict )
+    FQ2BAM          ( read_pairs_ch, ref, ref_fai, ref_dict, ref_bwt, ref_ann, ref_amb, ref_pac, ref_sa )
     HAPLOTYPE_CALLER( FQ2BAM.out.bam_bai, ref, ref_fai, ref_dict )
 
     // Wait for ALL GVCFs before joint genotyping

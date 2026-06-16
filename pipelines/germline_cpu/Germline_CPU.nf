@@ -255,6 +255,7 @@ process GENOTYPE_GVCFS {
 
     input:
     path gvcfs
+    path tbis
 
     path reference
     path ref_fai
@@ -341,7 +342,7 @@ process PASS_VCF {
 
     publishDir "${params.outdir}/vcf", mode: 'copy'
 
-    container 'biocontainers/bcftools:v1.19_cv1'
+    container 'staphb/bcftools:1.20'
 
     errorStrategy 'retry'
     maxRetries 2
@@ -387,17 +388,15 @@ workflow {
     def ref = file(params.reference)
     def ref_fai = file("${params.reference}.fai")
 
-    def ref_dict = file(
-    params.reference.toString()
-    .replaceAll(/.fasta$/, ".dict")
-    .replaceAll(/.fa$/, ".dict")
-    )
+    def ref_base = params.reference.toString().replaceAll(/\.fasta$/, "").replaceAll(/\.fa$/, "")
 
-    def ref_bwt = file("${params.reference}.bwt")
-    def ref_ann = file("${params.reference}.ann")
-    def ref_amb = file("${params.reference}.amb")
-    def ref_pac = file("${params.reference}.pac")
-    def ref_sa = file("${params.reference}.sa")
+    def ref_dict = file("${ref_base}.dict")
+
+    def ref_bwt = file("${ref_base}.bwt").exists() ? file("${ref_base}.bwt") : file("${params.reference}.bwt")
+    def ref_ann = file("${ref_base}.ann").exists() ? file("${ref_base}.ann") : file("${params.reference}.ann")
+    def ref_amb = file("${ref_base}.amb").exists() ? file("${ref_base}.amb") : file("${params.reference}.amb")
+    def ref_pac = file("${ref_base}.pac").exists() ? file("${ref_base}.pac") : file("${params.reference}.pac")
+    def ref_sa  = file("${ref_base}.sa").exists()  ? file("${ref_base}.sa")  : file("${params.reference}.sa")
 
     log.info """
     ============================================
@@ -451,9 +450,14 @@ workflow {
     all_gvcfs_ch = HAPLOTYPE_CALLER.out.gvcf
         .map { sample_id, gvcf, tbi -> gvcf }
         .collect()
+        
+    all_tbis_ch = HAPLOTYPE_CALLER.out.gvcf
+        .map { sample_id, gvcf, tbi -> tbi }
+        .collect()
 
     GENOTYPE_GVCFS(
         all_gvcfs_ch,
+        all_tbis_ch,
         ref,
         ref_fai,
         ref_dict

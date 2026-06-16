@@ -1,0 +1,357 @@
+Jun-15 20:10:07.245 [main] DEBUG nextflow.cli.Launcher - $> nextflow run Germline_CPU.nf -c Germline_CPU.config --reads '/mnt/d/Downloads/Nextflow/Data/Raw/*_R{1,2}.fastq.gz' --reference /mnt/d/Downloads/Nextflow/Data/Ref/reference.fasta --outdir /mnt/d/downloads/nextflow/pipelines/germline_cpu/results/name --cohort_name name --fastqc_cpus 2 --fastqc_mem '2 GB' --bwa_cpus 4 --bwa_mem '8 GB' --sort_cpus 3 --sort_mem '4 GB' --markdup_cpus 3 --markdup_mem '4 GB' --hc_cpus 4 --hc_mem '8 GB' --geno_cpus 2 --geno_mem '4 GB' --varfilt_cpus 2 --varfilt_mem '4 GB' --passvcf_cpus 1 --passvcf_mem '2 GB' -resume
+Jun-15 20:10:07.417 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 26.04.3
+Jun-15 20:10:07.474 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/.nextflow/plugins; core-plugins: nf-amazon@3.9.1,nf-azure@1.22.5,nf-cloudcache@0.6.0,nf-codecommit@0.5.2,nf-console@1.3.0,nf-google@1.27.3,nf-k8s@1.5.4,nf-seqera@0.20.1,nf-tower@1.28.0,nf-wave@1.21.0
+Jun-15 20:10:07.602 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Jun-15 20:10:07.609 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Jun-15 20:10:07.616 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.14.1 in 'deployment' mode
+Jun-15 20:10:07.656 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Jun-15 20:10:08.007 [main] DEBUG nextflow.plugin.PluginUpdater - Using plugin repository: HttpPluginRepository [registry]; url=https://registry.nextflow.io/api
+Jun-15 20:10:08.056 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Jun-15 20:10:08.145 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /mnt/d/downloads/nextflow/pipelines/germline_cpu/Germline_CPU.config
+Jun-15 20:10:08.150 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /mnt/d/downloads/nextflow/pipelines/germline_cpu/Germline_CPU.config
+Jun-15 20:10:08.160 [main] DEBUG nextflow.config.ConfigParserFactory - Using config parser v2
+Jun-15 20:10:08.197 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Jun-15 20:10:09.174 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Jun-15 20:10:09.175 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Jun-15 20:10:09.208 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /.nextflow/secrets/store.json
+Jun-15 20:10:09.215 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@56399b9e] - activable => nextflow.secret.LocalSecretsProvider@56399b9e
+Jun-15 20:10:09.249 [main] DEBUG nextflow.cli.CmdRun - Launching `Germline_CPU.nf` [berserk_marconi] - revision: 30606822bc
+Jun-15 20:10:09.461 [main] DEBUG nextflow.Session - Session UUID: 0f6c522a-9a28-4b3a-a232-39cba4cd7e5e
+Jun-15 20:10:09.462 [main] DEBUG nextflow.Session - Run name: berserk_marconi
+Jun-15 20:10:09.464 [main] DEBUG nextflow.Session - Executor pool size: 8
+Jun-15 20:10:09.491 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Jun-15 20:10:09.513 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=24; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Jun-15 20:10:09.564 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 26.04.3 build 12259
+  Created: 28-05-2026 08:48 UTC 
+  System: Linux 6.6.114.1-microsoft-standard-WSL2
+  Runtime: Groovy 4.0.31 on OpenJDK 64-Bit Server VM 21.0.11+10-LTS
+  Encoding: UTF-8 (UTF-8)
+  Process: 1@ff232dfb7e15 [172.17.0.2]
+  CPUs: 8 - Mem: 11.7 GB (9.7 GB) - Swap: 8 GB (8 GB)
+Jun-15 20:10:09.643 [main] DEBUG nextflow.Session - Work-dir: /mnt/d/downloads/nextflow/work [v9fs]
+Jun-15 20:10:09.645 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /mnt/d/downloads/nextflow/pipelines/germline_cpu/bin
+Jun-15 20:10:09.659 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Jun-15 20:10:09.677 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Jun-15 20:10:09.683 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Jun-15 20:10:09.787 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Jun-15 20:10:09.805 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 9; maxThreads: 1000
+Jun-15 20:10:10.000 [main] DEBUG nextflow.Session - Session start
+Jun-15 20:10:10.007 [main] DEBUG nextflow.script.ScriptLoaderFactory - Using script parser v2
+Jun-15 20:10:11.093 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Jun-15 20:10:11.344 [main] INFO  nextflow.Nextflow - 
+============================================
+ GERMLINE CPU VARIANT CALLING PIPELINE
+============================================
+ reads      : /mnt/d/Downloads/Nextflow/Data/Raw/*_R{1,2}.fastq.gz
+ reference  : /mnt/d/Downloads/Nextflow/Data/Ref/reference.fasta
+ outdir     : /mnt/d/downloads/nextflow/pipelines/germline_cpu/results/name
+ cohort     : name
+============================================
+
+Jun-15 20:10:11.523 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:FASTQC` matches process FASTQC
+Jun-15 20:10:11.530 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-15 20:10:11.531 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-15 20:10:11.546 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Jun-15 20:10:11.558 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=8; memory=11.7 GB; capacity=8; pollInterval=100ms; dumpInterval=5m
+Jun-15 20:10:11.562 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Jun-15 20:10:11.635 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'FASTQC': maxForks=0; fair=false; array=0
+Jun-15 20:10:11.712 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:BWA_ALIGN` matches process BWA_ALIGN
+Jun-15 20:10:11.715 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-15 20:10:11.716 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-15 20:10:11.720 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'BWA_ALIGN': maxForks=0; fair=false; array=0
+Jun-15 20:10:11.735 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:SORT_BAM` matches process SORT_BAM
+Jun-15 20:10:11.738 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-15 20:10:11.738 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-15 20:10:11.740 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SORT_BAM': maxForks=0; fair=false; array=0
+Jun-15 20:10:11.750 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:MARK_DUPLICATES` matches process MARK_DUPLICATES
+Jun-15 20:10:11.754 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-15 20:10:11.755 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-15 20:10:11.757 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'MARK_DUPLICATES': maxForks=0; fair=false; array=0
+Jun-15 20:10:11.765 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:INDEX_BAM` matches process INDEX_BAM
+Jun-15 20:10:11.769 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-15 20:10:11.770 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-15 20:10:11.772 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'INDEX_BAM': maxForks=0; fair=false; array=0
+Jun-15 20:10:11.780 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:HAPLOTYPE_CALLER` matches process HAPLOTYPE_CALLER
+Jun-15 20:10:11.785 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-15 20:10:11.786 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-15 20:10:11.796 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HAPLOTYPE_CALLER': maxForks=0; fair=false; array=0
+Jun-15 20:10:11.837 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:GENOTYPE_GVCFS` matches process GENOTYPE_GVCFS
+Jun-15 20:10:11.839 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-15 20:10:11.840 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-15 20:10:11.843 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'GENOTYPE_GVCFS': maxForks=0; fair=false; array=0
+Jun-15 20:10:11.851 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:VARIANT_FILTRATION` matches process VARIANT_FILTRATION
+Jun-15 20:10:11.854 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-15 20:10:11.855 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-15 20:10:11.856 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'VARIANT_FILTRATION': maxForks=0; fair=false; array=0
+Jun-15 20:10:11.868 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:PASS_VCF` matches process PASS_VCF
+Jun-15 20:10:11.870 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-15 20:10:11.871 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-15 20:10:11.872 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'PASS_VCF': maxForks=0; fair=false; array=0
+Jun-15 20:10:11.877 [main] DEBUG nextflow.Session - Process names: FASTQC, HAPLOTYPE_CALLER, VARIANT_FILTRATION, BWA_ALIGN, INDEX_BAM, GENOTYPE_GVCFS, PASS_VCF, SORT_BAM, MARK_DUPLICATES
+Jun-15 20:10:11.883 [main] DEBUG nextflow.Session - Igniting dataflow network (10)
+Jun-15 20:10:11.891 [PathVisitor-1] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /mnt/d/Downloads/Nextflow/Data/Raw/; pattern: *_R{1,2}.fastq.gz; options: [checkIfExists:true]
+Jun-15 20:10:11.892 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > FASTQC
+Jun-15 20:10:11.893 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > BWA_ALIGN
+Jun-15 20:10:11.894 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SORT_BAM
+Jun-15 20:10:11.895 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > MARK_DUPLICATES
+Jun-15 20:10:11.897 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > INDEX_BAM
+Jun-15 20:10:11.898 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HAPLOTYPE_CALLER
+Jun-15 20:10:11.898 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > GENOTYPE_GVCFS
+Jun-15 20:10:11.901 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > VARIANT_FILTRATION
+Jun-15 20:10:11.902 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > PASS_VCF
+Jun-15 20:10:11.903 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Main: /mnt/d/downloads/nextflow/pipelines/germline_cpu/Germline_CPU.nf
+Jun-15 20:10:11.904 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Jun-15 20:10:11.904 [main] DEBUG nextflow.Session - Session await
+Jun-15 20:10:12.230 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-15 20:10:12.233 [Task submitter] INFO  nextflow.Session - [5c/fc609f] Submitted process > BWA_ALIGN (sample1)
+Jun-15 20:10:12.269 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-15 20:10:12.270 [Task submitter] INFO  nextflow.Session - [6b/a8582d] Submitted process > FASTQC (sample1)
+Jun-15 20:15:12.076 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 2 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: BWA_ALIGN (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/5c/fc609f833459367cb79e57d03bbb90]
+~> TaskHandler[id: 1; name: FASTQC (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/6b/a8582dcd6b13efbf5cfa12135e5a12]
+Jun-15 20:20:11.819 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 2 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: BWA_ALIGN (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/5c/fc609f833459367cb79e57d03bbb90]
+~> TaskHandler[id: 1; name: FASTQC (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/6b/a8582dcd6b13efbf5cfa12135e5a12]
+Jun-15 20:25:11.899 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 2 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: BWA_ALIGN (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/5c/fc609f833459367cb79e57d03bbb90]
+~> TaskHandler[id: 1; name: FASTQC (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/6b/a8582dcd6b13efbf5cfa12135e5a12]
+Jun-15 20:30:12.043 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 2 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: BWA_ALIGN (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/5c/fc609f833459367cb79e57d03bbb90]
+~> TaskHandler[id: 1; name: FASTQC (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/6b/a8582dcd6b13efbf5cfa12135e5a12]
+Jun-15 20:34:34.541 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: FASTQC (sample1); status: COMPLETED; exit: 0; error: -; workDir: /mnt/d/downloads/nextflow/work/6b/a8582dcd6b13efbf5cfa12135e5a12]
+Jun-15 20:34:34.639 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=24; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Jun-15 20:34:35.652 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=24; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Jun-15 20:35:12.023 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: BWA_ALIGN (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/5c/fc609f833459367cb79e57d03bbb90]
+Jun-15 20:40:12.093 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: BWA_ALIGN (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/5c/fc609f833459367cb79e57d03bbb90]
+Jun-15 20:45:12.100 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: BWA_ALIGN (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/5c/fc609f833459367cb79e57d03bbb90]
+Jun-15 20:50:12.182 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: BWA_ALIGN (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/5c/fc609f833459367cb79e57d03bbb90]
+Jun-15 20:53:02.043 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: BWA_ALIGN (sample1); status: COMPLETED; exit: 0; error: -; workDir: /mnt/d/downloads/nextflow/work/5c/fc609f833459367cb79e57d03bbb90]
+Jun-15 20:53:03.018 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-15 20:53:03.022 [Task submitter] INFO  nextflow.Session - [e3/6dd151] Submitted process > SORT_BAM (sample1)
+Jun-15 20:55:12.257 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 3; name: SORT_BAM (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/e3/6dd1514402c9fd045a30c6eb0feac7]
+Jun-15 20:59:47.099 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: SORT_BAM (sample1); status: COMPLETED; exit: 0; error: -; workDir: /mnt/d/downloads/nextflow/work/e3/6dd1514402c9fd045a30c6eb0feac7]
+Jun-15 20:59:47.349 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-15 20:59:47.352 [Task submitter] INFO  nextflow.Session - [5e/387d2e] Submitted process > MARK_DUPLICATES (sample1)
+Jun-15 21:00:12.350 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 4; name: MARK_DUPLICATES (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/5e/387d2e16e3966c7cc3729579a64f26]
+Jun-15 21:05:12.442 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 4; name: MARK_DUPLICATES (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/5e/387d2e16e3966c7cc3729579a64f26]
+Jun-15 21:06:53.660 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 4; name: MARK_DUPLICATES (sample1); status: COMPLETED; exit: 0; error: -; workDir: /mnt/d/downloads/nextflow/work/5e/387d2e16e3966c7cc3729579a64f26]
+Jun-15 21:06:53.780 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-15 21:06:53.782 [Task submitter] INFO  nextflow.Session - [22/ca3d4e] Submitted process > INDEX_BAM (sample1)
+Jun-15 21:08:36.428 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 5; name: INDEX_BAM (sample1); status: COMPLETED; exit: 0; error: -; workDir: /mnt/d/downloads/nextflow/work/22/ca3d4ed609c4d107aac702cd7bcae3]
+Jun-15 21:08:36.648 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-15 21:08:36.649 [Task submitter] INFO  nextflow.Session - [03/f6e981] Submitted process > HAPLOTYPE_CALLER (sample1)
+Jun-15 21:10:12.489 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 21:15:12.520 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 21:20:12.616 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 21:25:12.707 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 21:30:12.796 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 21:35:12.884 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 21:40:12.955 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 21:45:12.959 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 21:50:13.027 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 21:55:13.071 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 22:00:13.093 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 22:05:13.150 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 22:10:13.201 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 22:15:13.249 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 22:20:13.305 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 22:25:13.341 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 22:30:13.392 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 22:35:13.457 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 22:39:49.375 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 6; name: HAPLOTYPE_CALLER (sample1); status: COMPLETED; exit: 2; error: -; workDir: /mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a]
+Jun-15 22:39:49.423 [TaskFinalizer-6] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=HAPLOTYPE_CALLER (sample1); work-dir=/mnt/d/downloads/nextflow/work/03/f6e9811babd2b6baeed7f03556453a
+  error [nextflow.exception.ProcessFailedException]: Process `HAPLOTYPE_CALLER (sample1)` terminated with an error exit status (2)
+Jun-15 22:39:49.494 [TaskFinalizer-6] INFO  nextflow.processor.TaskProcessor - [03/f6e981] NOTE: Process `HAPLOTYPE_CALLER (sample1)` terminated with an error exit status (2) -- Execution is retried (1)
+Jun-15 22:39:49.547 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-15 22:39:49.548 [Task submitter] INFO  nextflow.Session - [f6/0f6a44] Re-submitted process > HAPLOTYPE_CALLER (sample1)
+Jun-15 22:40:13.524 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 22:45:13.563 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 22:50:13.592 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 22:55:13.627 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:00:13.700 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:05:13.807 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:10:13.827 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:15:13.863 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:20:13.892 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:25:13.925 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:30:13.966 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:35:14.003 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:40:14.027 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:45:14.034 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:50:14.067 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-15 23:55:14.091 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-16 00:00:14.115 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-16 00:05:14.151 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-16 00:06:54.519 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 7; name: HAPLOTYPE_CALLER (sample1); status: COMPLETED; exit: 2; error: -; workDir: /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8]
+Jun-16 00:06:54.553 [TaskFinalizer-7] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=HAPLOTYPE_CALLER (sample1); work-dir=/mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8
+  error [nextflow.exception.ProcessFailedException]: Process `HAPLOTYPE_CALLER (sample1)` terminated with an error exit status (2)
+Jun-16 00:06:54.602 [TaskFinalizer-7] ERROR nextflow.processor.TaskProcessor - Error executing process > 'HAPLOTYPE_CALLER (sample1)'
+
+Caused by:
+  Process `HAPLOTYPE_CALLER (sample1)` terminated with an error exit status (2)
+
+
+Command executed:
+
+  echo "INFO: HaplotypeCaller for sample1"
+  
+  gatk         --java-options "-Xmx6g"         HaplotypeCaller         --native-pair-hmm-threads 4         -R reference.fasta         -I sample1.bam         -O sample1.g.vcf.gz         -ERC GVCF
+  
+  gatk IndexFeatureFile         -I sample1.g.vcf.gz
+  
+  [ -s "sample1.g.vcf.gz" ] || {
+      echo "ERROR: empty GVCF"
+      exit 1
+  }
+
+Command exit status:
+  2
+
+Command output:
+  INFO: HaplotypeCaller for sample1
+
+Command error:
+  00:00:48.263 INFO  ProgressMeter -       chr22:18080757             80.9              10557010         130465.8
+  00:00:58.295 INFO  ProgressMeter -       chr22:21295128             81.1              10569420         130349.9
+  00:01:08.298 INFO  ProgressMeter -       chr22:24629237             81.3              10582280         130240.7
+  00:01:18.301 INFO  ProgressMeter -       chr22:29330842             81.4              10600190         130194.0
+  00:01:28.309 INFO  ProgressMeter -       chr22:33273281             81.6              10615550         130116.0
+  00:01:38.314 INFO  ProgressMeter -       chr22:37917961             81.8              10633410         130069.1
+  00:01:48.315 INFO  ProgressMeter -       chr22:41676580             81.9              10648000         129982.6
+  00:01:58.317 INFO  ProgressMeter -       chr22:45114473             82.1              10661640         129884.8
+  00:02:08.339 INFO  ProgressMeter -       chr22:49925223             82.3              10680340         129848.3
+  00:02:18.339 INFO  ProgressMeter -         chrX:1833713             82.4              10691280         129718.5
+  00:02:28.340 INFO  ProgressMeter -         chrX:9160994             82.6              10718010         129780.4
+  00:02:38.341 INFO  ProgressMeter -        chrX:16066398             82.8              10743270         129824.2
+  00:02:48.345 INFO  ProgressMeter -        chrX:23504640             82.9              10770270         129888.8
+  00:02:58.346 INFO  ProgressMeter -        chrX:31523994             83.1              10799230         129976.7
+  00:03:08.350 INFO  ProgressMeter -        chrX:40075324             83.3              10829960         130085.5
+  00:03:18.353 INFO  ProgressMeter -        chrX:47251121             83.4              10856050         130138.3
+  00:03:28.361 INFO  ProgressMeter -        chrX:52467401             83.6              10875280         130108.7
+  00:03:38.362 INFO  ProgressMeter -        chrX:60759080             83.8              10904770         130201.9
+  00:03:48.362 INFO  ProgressMeter -        chrX:70273578             83.9              10938420         130344.3
+  00:03:58.363 INFO  ProgressMeter -        chrX:76249974             84.1              10960240         130345.4
+  00:04:08.366 INFO  ProgressMeter -        chrX:84823908             84.3              10991070         130453.4
+  00:04:18.366 INFO  ProgressMeter -        chrX:94096019             84.4              11024160         130587.8
+  00:04:28.366 INFO  ProgressMeter -       chrX:102085695             84.6              11053060         130672.1
+  00:04:38.366 INFO  ProgressMeter -       chrX:109582756             84.8              11080020         130733.3
+  00:04:48.367 INFO  ProgressMeter -       chrX:117438506             84.9              11108440         130811.3
+  00:04:58.367 INFO  ProgressMeter -       chrX:124438906             85.1              11133890         130854.2
+  00:05:08.373 INFO  ProgressMeter -       chrX:132665155             85.3              11163600         130946.7
+  00:05:18.379 INFO  ProgressMeter -       chrX:139604494             85.4              11188860         130986.8
+  00:05:28.380 INFO  ProgressMeter -       chrX:147965615             85.6              11219040         131084.3
+  00:05:38.395 INFO  ProgressMeter -       chrX:153779872             85.8              11240470         131079.1
+  00:05:48.395 INFO  ProgressMeter -         chrY:9190036             85.9              11279560         131279.8
+  00:05:58.395 INFO  ProgressMeter -        chrY:25073191             86.1              11332950         131645.8
+  00:06:08.395 INFO  ProgressMeter -        chrY:50241060             86.3              11416860         132364.3
+  00:06:18.396 INFO  ProgressMeter - chr4_GL000008v2_random:14625             86.4              11445000         132434.6
+  00:06:28.396 INFO  ProgressMeter - chr16_KI270728v1_random:946740             86.6              11456670         132314.4
+  00:06:38.396 INFO  ProgressMeter - chrUn_KI270435v1:74335             86.8              11468730         132199.2
+  00:06:48.399 INFO  ProgressMeter -   chrUn_KI270747v1:1             86.9              11477230         132043.5
+  00:06:54.005 INFO  VectorLoglessPairHMM - Time spent in setup for JNI call : 1.3635368520000002
+  00:06:54.005 INFO  PairHMM - Total compute time in PairHMM computeLogLikelihoods() : 95.42523858300001
+  00:06:54.005 INFO  SmithWatermanAligner - Total compute time in native Smith-Waterman : 91.18 sec
+  00:06:54.006 INFO  HaplotypeCaller - Shutting down engine
+  [June 16, 2026 at 12:06:54 AM GMT] org.broadinstitute.hellbender.tools.walkers.haplotypecaller.HaplotypeCaller done. Elapsed time: 87.03 minutes.
+  Runtime.totalMemory()=2407530496
+  ***********************************************************************
+  
+  A USER ERROR has occurred: Contig chrEBV not present in the sequence dictionary [chr1, chr10, chr11, chr11_KI270721v1_random, chr12, chr13, chr14, chr14_GL000009v2_random, chr14_GL000225v1_random, chr14_KI270722v1_random, chr14_GL000194v1_random, chr14_KI270723v1_random, chr14_KI270724v1_random, chr14_KI270725v1_random, chr14_KI270726v1_random, chr15, chr15_KI270727v1_random, chr16, chr16_KI270728v1_random, chr17, chr17_GL000205v2_random, chr17_KI270729v1_random, chr17_KI270730v1_random, chr18, chr19, chr1_KI270706v1_random, chr1_KI270707v1_random, chr1_KI270708v1_random, chr1_KI270709v1_random, chr1_KI270710v1_random, chr1_KI270711v1_random, chr1_KI270712v1_random, chr1_KI270713v1_random, chr1_KI270714v1_random, chr2, chr20, chr21, chr22, chr22_KI270731v1_random, chr22_KI270732v1_random, chr22_KI270733v1_random, chr22_KI270734v1_random, chr22_KI270735v1_random, chr22_KI270736v1_random, chr22_KI270737v1_random, chr22_KI270738v1_random, chr22_KI270739v1_random, chr2_KI270715v1_random, chr2_KI270716v1_random, chr3, chr3_GL000221v1_random, chr4, chr4_GL000008v2_random, chr5, chr5_GL000208v1_random, chr6, chr7, chr8, chr9, chr9_KI270717v1_random, chr9_KI270718v1_random, chr9_KI270719v1_random, chr9_KI270720v1_random, chr1_KI270762v1_alt, chr1_KI270766v1_alt, chr1_KI270760v1_alt, chr1_KI270765v1_alt, chr1_GL383518v1_alt, chr1_GL383519v1_alt, chr1_GL383520v2_alt, chr1_KI270764v1_alt, chr1_KI270763v1_alt, chr1_KI270759v1_alt, chr1_KI270761v1_alt, chr2_KI270770v1_alt, chr2_KI270773v1_alt, chr2_KI270774v1_alt, chr2_KI270769v1_alt, chr2_GL383521v1_alt, chr2_KI270772v1_alt, chr2_KI270775v1_alt, chr2_KI270771v1_alt, chr2_KI270768v1_alt, chr2_GL582966v2_alt, chr2_GL383522v1_alt, chr2_KI270776v1_alt, chr2_KI270767v1_alt, chr3_JH636055v2_alt, chr3_KI270783v1_alt, chr3_KI270780v1_alt, chr3_GL383526v1_alt, chr3_KI270777v1_alt, chr3_KI270778v1_alt, chr3_KI270781v1_alt, chr3_KI270779v1_alt, chr3_KI270782v1_alt, chr3_KI270784v1_alt, chr4_KI270790v1_alt, chr4_GL383528v1_alt, chr4_KI270787v1_alt, chr4_GL000257v2_alt, chr4_KI270788v1_alt, chr4_GL383527v1_alt, chr4_KI270785v1_alt, chr4_KI270789v1_alt, chr4_KI270786v1_alt, chr5_KI270793v1_alt, chr5_KI270792v1_alt, chr5_KI270791v1_alt, chr5_GL383532v1_alt, chr5_GL949742v1_alt, chr5_KI270794v1_alt, chr5_GL339449v2_alt, chr5_GL383530v1_alt, chr5_KI270796v1_alt, chr5_GL383531v1_alt, chr5_KI270795v1_alt, chr6_GL000250v2_alt, chr6_KI270800v1_alt, chr6_KI270799v1_alt, chr6_GL383533v1_alt, chr6_KI270801v1_alt, chr6_KI270802v1_alt, chr6_KB021644v2_alt, chr6_KI270797v1_alt, chr6_KI270798v1_alt, chr7_KI270804v1_alt, chr7_KI270809v1_alt, chr7_KI270806v1_alt, chr7_GL383534v2_alt, chr7_KI270803v1_alt, chr7_KI270808v1_alt, chr7_KI270807v1_alt, chr7_KI270805v1_alt, chr8_KI270818v1_alt, chr8_KI270812v1_alt, chr8_KI270811v1_alt, chr8_KI270821v1_alt, chr8_KI270813v1_alt, chr8_KI270822v1_alt, chr8_KI270814v1_alt, chr8_KI270810v1_alt, chr8_KI270819v1_alt, chr8_KI270820v1_alt, chr8_KI270817v1_alt, chr8_KI270816v1_alt, chr8_KI270815v1_alt, chr9_GL383539v1_alt, chr9_GL383540v1_alt, chr9_GL383541v1_alt, chr9_GL383542v1_alt, chr9_KI270823v1_alt, chr10_GL383545v1_alt, chr10_KI270824v1_alt, chr10_GL383546v1_alt, chr10_KI270825v1_alt, chr11_KI270832v1_alt, chr11_KI270830v1_alt, chr11_KI270831v1_alt, chr11_KI270829v1_alt, chr11_GL383547v1_alt, chr11_JH159136v1_alt, chr11_JH159137v1_alt, chr11_KI270827v1_alt, chr11_KI270826v1_alt, chr12_GL877875v1_alt, chr12_GL877876v1_alt, chr12_KI270837v1_alt, chr12_GL383549v1_alt, chr12_KI270835v1_alt, chr12_GL383550v2_alt, chr12_GL383552v1_alt, chr12_GL383553v2_alt, chr12_KI270834v1_alt, chr12_GL383551v1_alt, chr12_KI270833v1_alt, chr12_KI270836v1_alt, chr13_KI270840v1_alt, chr13_KI270839v1_alt, chr13_KI270843v1_alt, chr13_KI270841v1_alt, chr13_KI270838v1_alt, chr13_KI270842v1_alt, chr14_KI270844v1_alt, chr14_KI270847v1_alt, chr14_KI270845v1_alt, chr14_KI270846v1_alt, chr15_KI270852v1_alt, chr15_KI270851v1_alt, chr15_KI270848v1_alt, chr15_GL383554v1_alt, chr15_KI270849v1_alt, chr15_GL383555v2_alt, chr15_KI270850v1_alt, chr16_KI270854v1_alt, chr16_KI270856v1_alt, chr16_KI270855v1_alt, chr16_KI270853v1_alt, chr16_GL383556v1_alt, chr16_GL383557v1_alt, chr17_GL383563v3_alt, chr17_KI270862v1_alt, chr17_KI270861v1_alt, chr17_KI270857v1_alt, chr17_JH159146v1_alt, chr17_JH159147v1_alt, chr17_GL383564v2_alt, chr17_GL000258v2_alt, chr17_GL383565v1_alt, chr17_KI270858v1_alt, chr17_KI270859v1_alt, chr17_GL383566v1_alt, chr17_KI270860v1_alt, chr18_KI270864v1_alt, chr18_GL383567v1_alt, chr18_GL383570v1_alt, chr18_GL383571v1_alt, chr18_GL383568v1_alt, chr18_GL383569v1_alt, chr18_GL383572v1_alt, chr18_KI270863v1_alt, chr19_KI270868v1_alt, chr19_KI270865v1_alt, chr19_GL383573v1_alt, chr19_GL383575v2_alt, chr19_GL383576v1_alt, chr19_GL383574v1_alt, chr19_KI270866v1_alt, chr19_KI270867v1_alt, chr19_GL949746v1_alt, chr20_GL383577v2_alt, chr20_KI270869v1_alt, chr20_KI270871v1_alt, chr20_KI270870v1_alt, chr21_GL383578v2_alt, chr21_KI270874v1_alt, chr21_KI270873v1_alt, chr21_GL383579v2_alt, chr21_GL383580v2_alt, chr21_GL383581v2_alt, chr21_KI270872v1_alt, chr22_KI270875v1_alt, chr22_KI270878v1_alt, chr22_KI270879v1_alt, chr22_KI270876v1_alt, chr22_KI270877v1_alt, chr22_GL383583v2_alt, chr22_GL383582v2_alt, chrX_KI270880v1_alt, chrX_KI270881v1_alt, chr19_KI270882v1_alt, chr19_KI270883v1_alt, chr19_KI270884v1_alt, chr19_KI270885v1_alt, chr19_KI270886v1_alt, chr19_KI270887v1_alt, chr19_KI270888v1_alt, chr19_KI270889v1_alt, chr19_KI270890v1_alt, chr19_KI270891v1_alt, chr1_KI270892v1_alt, chr2_KI270894v1_alt, chr2_KI270893v1_alt, chr3_KI270895v1_alt, chr4_KI270896v1_alt, chr5_KI270897v1_alt, chr5_KI270898v1_alt, chr6_GL000251v2_alt, chr7_KI270899v1_alt, chr8_KI270901v1_alt, chr8_KI270900v1_alt, chr11_KI270902v1_alt, chr11_KI270903v1_alt, chr12_KI270904v1_alt, chr15_KI270906v1_alt, chr15_KI270905v1_alt, chr17_KI270907v1_alt, chr17_KI270910v1_alt, chr17_KI270909v1_alt, chr17_JH159148v1_alt, chr17_KI270908v1_alt, chr18_KI270912v1_alt, chr18_KI270911v1_alt, chr19_GL949747v2_alt, chr22_KB663609v1_alt, chrX_KI270913v1_alt, chr19_KI270914v1_alt, chr19_KI270915v1_alt, chr19_KI270916v1_alt, chr19_KI270917v1_alt, chr19_KI270918v1_alt, chr19_KI270919v1_alt, chr19_KI270920v1_alt, chr19_KI270921v1_alt, chr19_KI270922v1_alt, chr19_KI270923v1_alt, chr3_KI270924v1_alt, chr4_KI270925v1_alt, chr6_GL000252v2_alt, chr8_KI270926v1_alt, chr11_KI270927v1_alt, chr19_GL949748v2_alt, chr22_KI270928v1_alt, chr19_KI270929v1_alt, chr19_KI270930v1_alt, chr19_KI270931v1_alt, chr19_KI270932v1_alt, chr19_KI270933v1_alt, chr19_GL000209v2_alt, chr3_KI270934v1_alt, chr6_GL000253v2_alt, chr19_GL949749v2_alt, chr3_KI270935v1_alt, chr6_GL000254v2_alt, chr19_GL949750v2_alt, chr3_KI270936v1_alt, chr6_GL000255v2_alt, chr19_GL949751v2_alt, chr3_KI270937v1_alt, chr6_GL000256v2_alt, chr19_GL949752v1_alt, chr6_KI270758v1_alt, chr19_GL949753v2_alt, chr19_KI270938v1_alt, chrM, chrUn_KI270302v1, chrUn_KI270304v1, chrUn_KI270303v1, chrUn_KI270305v1, chrUn_KI270322v1, chrUn_KI270320v1, chrUn_KI270310v1, chrUn_KI270316v1, chrUn_KI270315v1, chrUn_KI270312v1, chrUn_KI270311v1, chrUn_KI270317v1, chrUn_KI270412v1, chrUn_KI270411v1, chrUn_KI270414v1, chrUn_KI270419v1, chrUn_KI270418v1, chrUn_KI270420v1, chrUn_KI270424v1, chrUn_KI270417v1, chrUn_KI270422v1, chrUn_KI270423v1, chrUn_KI270425v1, chrUn_KI270429v1, chrUn_KI270442v1, chrUn_KI270466v1, chrUn_KI270465v1, chrUn_KI270467v1, chrUn_KI270435v1, chrUn_KI270438v1, chrUn_KI270468v1, chrUn_KI270510v1, chrUn_KI270509v1, chrUn_KI270518v1, chrUn_KI270508v1, chrUn_KI270516v1, chrUn_KI270512v1, chrUn_KI270519v1, chrUn_KI270522v1, chrUn_KI270511v1, chrUn_KI270515v1, chrUn_KI270507v1, chrUn_KI270517v1, chrUn_KI270529v1, chrUn_KI270528v1, chrUn_KI270530v1, chrUn_KI270539v1, chrUn_KI270538v1, chrUn_KI270544v1, chrUn_KI270548v1, chrUn_KI270583v1, chrUn_KI270587v1, chrUn_KI270580v1, chrUn_KI270581v1, chrUn_KI270579v1, chrUn_KI270589v1, chrUn_KI270590v1, chrUn_KI270584v1, chrUn_KI270582v1, chrUn_KI270588v1, chrUn_KI270593v1, chrUn_KI270591v1, chrUn_KI270330v1, chrUn_KI270329v1, chrUn_KI270334v1, chrUn_KI270333v1, chrUn_KI270335v1, chrUn_KI270338v1, chrUn_KI270340v1, chrUn_KI270336v1, chrUn_KI270337v1, chrUn_KI270363v1, chrUn_KI270364v1, chrUn_KI270362v1, chrUn_KI270366v1, chrUn_KI270378v1, chrUn_KI270379v1, chrUn_KI270389v1, chrUn_KI270390v1, chrUn_KI270387v1, chrUn_KI270395v1, chrUn_KI270396v1, chrUn_KI270388v1, chrUn_KI270394v1, chrUn_KI270386v1, chrUn_KI270391v1, chrUn_KI270383v1, chrUn_KI270393v1, chrUn_KI270384v1, chrUn_KI270392v1, chrUn_KI270381v1, chrUn_KI270385v1, chrUn_KI270382v1, chrUn_KI270376v1, chrUn_KI270374v1, chrUn_KI270372v1, chrUn_KI270373v1, chrUn_KI270375v1, chrUn_KI270371v1, chrUn_KI270448v1, chrUn_KI270521v1, chrUn_GL000195v1, chrUn_GL000219v1, chrUn_GL000220v1, chrUn_GL000224v1, chrUn_KI270741v1, chrUn_GL000226v1, chrUn_GL000213v1, chrUn_KI270743v1, chrUn_KI270744v1, chrUn_KI270745v1, chrUn_KI270746v1, chrUn_KI270747v1, chrUn_KI270748v1, chrUn_KI270749v1, chrUn_KI270750v1, chrUn_KI270751v1, chrUn_KI270752v1, chrUn_KI270753v1, chrUn_KI270754v1, chrUn_KI270755v1, chrUn_KI270756v1, chrUn_KI270757v1, chrUn_GL000214v1, chrUn_KI270742v1, chrUn_GL000216v2, chrUn_GL000218v1, chrX, chrY, chrY_KI270740v1_random]
+  
+  
+  ***********************************************************************
+  Set the system property GATK_STACKTRACE_ON_USER_EXCEPTION (--java-options '-DGATK_STACKTRACE_ON_USER_EXCEPTION=true') to print the stack trace.
+
+Work dir:
+  /mnt/d/downloads/nextflow/work/f6/0f6a44254c9bd8a5653e3ee276aec8
+
+Container:
+  broadinstitute/gatk:4.6.2.0
+
+Tip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`
+Jun-16 00:06:54.614 [TaskFinalizer-7] DEBUG nextflow.Session - Session aborted -- Cause: Process `HAPLOTYPE_CALLER (sample1)` terminated with an error exit status (2)
+Jun-16 00:06:54.631 [main] DEBUG nextflow.Session - Session await > all processes finished
+Jun-16 00:06:54.682 [TaskFinalizer-7] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=5; failedCount=2; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=1; abortedCount=0; succeedDuration=4h 24m 59s; failedDuration=11h 53m 10s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=2; peakCpus=6; peakMemory=10 GB; ]
+Jun-16 00:06:54.704 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Jun-16 00:06:54.705 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Jun-16 00:06:54.712 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=5; failedCount=2; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=1; abortedCount=0; succeedDuration=4h 24m 59s; failedDuration=11h 53m 10s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=2; peakCpus=6; peakMemory=10 GB; ]
+Jun-16 00:06:54.708 [TaskFinalizer-7] DEBUG nextflow.Session - null
+java.lang.InterruptedException
+	at java.base/java.lang.Object.wait0(Native Method)
+	at java.base/java.lang.Object.wait(Object.java:366)
+	at java.base/java.lang.Thread.join(Thread.java:2079)
+	at java.base/java.lang.Thread.join(Thread.java:2155)
+	at nextflow.trace.AnsiLogObserver.onFlowComplete(AnsiLogObserver.groovy:559)
+	at nextflow.Session$_notifyFlowComplete_lambda38.doCall(Session.groovy:1093)
+	at nextflow.Session.notifyEvent(Session.groovy:1123)
+	at nextflow.Session.notifyFlowComplete(Session.groovy:1093)
+	at nextflow.Session.shutdown0(Session.groovy:775)
+	at nextflow.Session.abort(Session.groovy:830)
+	at nextflow.Session.fault(Session.groovy:792)
+	at nextflow.processor.TaskPollingMonitor.finalizeTask(TaskPollingMonitor.groovy:753)
+	at nextflow.processor.TaskPollingMonitor.safeFinalizeTask(TaskPollingMonitor.groovy:736)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1341)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1096)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1009)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokePogoMethod(InvokerHelper.java:645)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(InvokerHelper.java:628)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethodSafe(InvokerHelper.java:82)
+	at nextflow.processor.TaskPollingMonitor$_checkTaskStatus_lambda8.doCall(TaskPollingMonitor.groovy:726)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Jun-16 00:06:54.893 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Jun-16 00:06:54.947 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

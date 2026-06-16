@@ -1,16 +1,26 @@
 #!/bin/bash
 set -e
 
-REFERENCE="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+REF_DIR="$1"
+REF_NAME="$2"
 
-if [[ ! -f "$REFERENCE" ]]; then
-    echo "ERROR: reference not found"
+if [[ -z "$REF_DIR" || -z "$REF_NAME" ]]; then
+    echo "Usage: $0 <REF_DIR> <REF_NAME>"
     exit 1
 fi
 
-REF_DIR="$(dirname "$REFERENCE")"
-REF_NAME="$(basename "$REFERENCE")"
+REF_FASTA="$REF_NAME.fasta"
 
+if [[ ! -f "$REF_DIR/$REF_FASTA" ]]; then
+    if [[ -f "$REF_DIR/$REF_NAME.fa" ]]; then
+        REF_FASTA="$REF_NAME.fa"
+    else
+        echo "ERROR: $REF_FASTA or $REF_NAME.fa not found in $REF_DIR"
+        exit 1
+    fi
+fi
+
+REFERENCE="$REF_DIR/$REF_FASTA"
 
 echo ""
 echo "Reference:"
@@ -22,16 +32,16 @@ docker run --rm \
     -v "$REF_DIR":"$REF_DIR" \
     -w "$REF_DIR" \
     biocontainers/bwa:v0.7.17_cv1 \
-    bwa index "$REF_NAME"
+    bwa index "$REF_FASTA"
 
 docker run --rm \
     -u $(id -u):$(id -g) \
     -v "$REF_DIR":"$REF_DIR" \
     -w "$REF_DIR" \
     broadinstitute/gatk:4.6.2.0 \
-    samtools faidx "$REF_NAME"
+    samtools faidx "$REF_FASTA"
 
-DICT_NAME="${REF_NAME%.*}.dict"
+DICT_NAME="${REF_NAME}.dict"
 
 docker run --rm \
     -u $(id -u):$(id -g) \
@@ -39,7 +49,7 @@ docker run --rm \
     -w "$REF_DIR" \
     broadinstitute/gatk:4.6.2.0 \
     gatk CreateSequenceDictionary \
-        -R "$REF_NAME" \
+        -R "$REF_FASTA" \
         -O "$DICT_NAME"
 
 echo ""

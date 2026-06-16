@@ -22,10 +22,10 @@ echo
 
 echo "[2/4] Making scripts executable..."
 
-find "$PROJECT/pipelines" 
--type f 
--name "*.sh" 
--exec chmod +x {} ;
+find "$PROJECT/pipelines" \
+-type f \
+-name "*.sh" \
+-exec chmod +x {} \;
 
 chmod +x "$PROJECT/install.sh"
 chmod +x "$PROJECT/cleanup.sh"
@@ -46,6 +46,8 @@ docker pull nextflow/nextflow:26.04.3
 docker pull biocontainers/fastqc:v0.11.9_cv8
 docker pull biocontainers/bwa:v0.7.17_cv1
 docker pull broadinstitute/gatk:4.6.2.0
+docker pull staphb/bcftools:1.20
+echo "Note: NVIDIA Parabricks image (nvcr.io/nvidia/clara/clara-parabricks:4.7.0-1) is large and is omitted from the default pull, but will be downloaded automatically during GPU pipeline execution."
 
 echo
 echo "Installation complete."
