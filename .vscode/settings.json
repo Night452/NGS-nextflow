@@ -1,0 +1,13 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/d:\\Downloads\\Nextflow\\PS_report_vscode.aux": true,
+        "**/d:\\Downloads\\Nextflow\\PS_report_vscode.log": true,
+        "**/d:\\Downloads\\Nextflow\\PS_report_vscode.gz": true,
+        "**/d:\\Downloads\\Nextflow\\PS_report_vscode.out": true
+    }
+}

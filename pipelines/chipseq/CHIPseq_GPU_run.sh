@@ -3,11 +3,11 @@ set -e
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_ROOT="$(realpath "$PROJECT_DIR/../..")"
-COHORT_NAME="$1"
+PROJECT_NAME="$1"
 FASTQ_PATH="$2"
+SAMPLESHEET="$3"
 
 # REF_DIR and RESULTS_DIR are required and must be set by the caller
-# (run_pipeline_linux.sh prompts for these). No defaults are assumed.
 if [[ -z "$REF_DIR" ]]; then
     echo "ERROR: REF_DIR is not set."
     exit 1
@@ -29,17 +29,16 @@ if [[ ! -f "$REF_DIR/$REF_FASTA" ]]; then
 fi
 
 echo "============================================"
-echo " GERMLINE VARIANT CALLING PIPELINE"
+echo " CHIP-SEQ GPU PIPELINE"
 echo "============================================"
 echo " Reads     : $FASTQ_PATH"
 echo " Reference : $REF_DIR"
-echo " Results   : $RESULTS_DIR/$COHORT_NAME/"
+echo " Results   : $RESULTS_DIR/$PROJECT_NAME/"
 echo "============================================"
 echo ""
 
-mkdir -p "$RESULTS_DIR/$COHORT_NAME"
+mkdir -p "$RESULTS_DIR/$PROJECT_NAME"
 
-APP_ROOT="$(cd "$PROJECT_DIR/../.." && pwd)"
 cd "$PROJECT_DIR"
 
 if [[ -n "${MAX_MEM_GB:-}" && "$MAX_MEM_GB" -gt 0 ]]; then
@@ -57,37 +56,26 @@ else
 fi
 
 FASTQC_CPUS=$CPU_COUNT
+FASTP_CPUS=$CPU_COUNT
 FQ2BAM_CPUS=$CPU_COUNT
-HC_CPUS=$CPU_COUNT
-GENO_CPUS=$CPU_COUNT
-VARFILT_CPUS=2
-PASSVCF_CPUS=1
+MACS2_CPUS=$CPU_COUNT
 
 FASTQC_MEM="$(( MEM_GB * 100 / 100 ))"
 [ "$FASTQC_MEM" -lt 2 ] && FASTQC_MEM=2
 
+FASTP_MEM="$(( MEM_GB * 100 / 100 ))"
+[ "$FASTP_MEM" -lt 4 ] && FASTP_MEM=4
+
 FQ2BAM_MEM="$(( MEM_GB * 60 / 100 ))"
 [ "$FQ2BAM_MEM" -lt 8 ] && FQ2BAM_MEM=8
 
-HC_MEM="$(( MEM_GB * 60 / 100 ))"
-[ "$HC_MEM" -lt 8 ] && HC_MEM=8
-
-GENO_MEM="$(( MEM_GB * 30 / 100 ))"
-[ "$GENO_MEM" -lt 4 ] && GENO_MEM=4
-
-VARFILT_MEM="$(( MEM_GB * 10 / 100 ))"
-[ "$VARFILT_MEM" -lt 4 ] && VARFILT_MEM=4
-
-PASSVCF_MEM="$(( MEM_GB * 5 / 100 ))"
-[ "$PASSVCF_MEM" -lt 2 ] && PASSVCF_MEM=2
+MACS2_MEM="$(( MEM_GB * 30 / 100 ))"
+[ "$MACS2_MEM" -lt 4 ] && MACS2_MEM=4
 
 FASTQC_MEM="${FASTQC_MEM} GB"
+FASTP_MEM="${FASTP_MEM} GB"
 FQ2BAM_MEM="${FQ2BAM_MEM} GB"
-HC_MEM="${HC_MEM} GB"
-GENO_MEM="${GENO_MEM} GB"
-VARFILT_MEM="${VARFILT_MEM} GB"
-PASSVCF_MEM="${PASSVCF_MEM} GB"
-
+MACS2_MEM="${MACS2_MEM} GB"
 
 MOUNTS=(
     -v "$APP_ROOT":"$APP_ROOT"
@@ -96,33 +84,39 @@ MOUNTS=(
     -v "$RESULTS_DIR":"$RESULTS_DIR"
 )
 
+# Determine input args (samplesheet vs reads)
+if [[ -n "$SAMPLESHEET" && -f "$SAMPLESHEET" ]]; then
+    echo "INFO: Using samplesheet $SAMPLESHEET"
+    INPUT_ARGS="--samplesheet $SAMPLESHEET"
+    MOUNTS+=(-v "$SAMPLESHEET":"$SAMPLESHEET")
+else
+    echo "INFO: No samplesheet provided, using raw fastq pairs"
+    INPUT_ARGS="--reads $FASTQ_PATH/*_R{1,2}.fastq.gz"
+fi
+
 echo "DEBUG MOUNTS = ${MOUNTS[@]}" >&2
 echo "DEBUG PROJECT_DIR = $PROJECT_DIR" >&2
-ls -la "$PROJECT_DIR/Germline_pipeline.nf" >&2
+
 docker run --rm \
     "${MOUNTS[@]}" \
     -w "$PROJECT_DIR" \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e NXF_DOCKER_LEGACY=true \
     nextflow/nextflow:26.04.3 \
-    nextflow run Germline_pipeline.nf -c Germline_pipeline.config \
+    nextflow run CHIPseq_GPU.nf -c CHIPseq_GPU.config \
     -work-dir "$PROJECT_DIR/work" \
-    --reads "${FASTQ_PATH}/*_R{1,2}.fastq.gz" \
+    $INPUT_ARGS \
     --reference "$REF_DIR/$REF_FASTA" \
-    --outdir "$RESULTS_DIR/$COHORT_NAME" \
-    --cohort_name "$COHORT_NAME" \
+    --outdir "$RESULTS_DIR/$PROJECT_NAME" \
+    --project_name "$PROJECT_NAME" \
     --fastqc_cpus "$FASTQC_CPUS" \
     --fastqc_mem "$FASTQC_MEM" \
+    --fastp_cpus "$FASTP_CPUS" \
+    --fastp_mem "$FASTP_MEM" \
     --fq2bam_cpus "$FQ2BAM_CPUS" \
     --fq2bam_mem "$FQ2BAM_MEM" \
-    --hc_cpus "$HC_CPUS" \
-    --hc_mem "$HC_MEM" \
-    --geno_cpus "$GENO_CPUS" \
-    --geno_mem "$GENO_MEM" \
-    --varfilt_cpus "$VARFILT_CPUS" \
-    --varfilt_mem "$VARFILT_MEM" \
-    --passvcf_cpus "$PASSVCF_CPUS" \
-    --passvcf_mem "$PASSVCF_MEM" \
+    --macs2_cpus "$MACS2_CPUS" \
+    --macs2_mem "$MACS2_MEM" \
     ${LOW_MEMORY:+"--low_memory"} \
     -resume
 
@@ -130,22 +124,15 @@ echo ""
 echo "============================================"
 echo " Results"
 echo "============================================"
-echo "GVCFs (per sample):"
-ls -lh "$RESULTS_DIR/$COHORT_NAME/gvcf/" 2>/dev/null || echo "  None found"
+echo "MACS2 Peak Calling (per sample):"
+ls -lh "$RESULTS_DIR/$PROJECT_NAME/macs2/" 2>/dev/null || echo "  None found"
 
 echo ""
-echo "VCFs (cohort):"
-ls -lh "$RESULTS_DIR/$COHORT_NAME/vcf/" 2>/dev/null || echo "  None found"
+echo "BAM files (per sample):"
+ls -lh "$RESULTS_DIR/$PROJECT_NAME/bam/" 2>/dev/null || echo "  None found"
 
-echo ""
-echo "Variant counts:"
-RAW=$(grep -vc "^#" "$RESULTS_DIR/$COHORT_NAME/vcf/${COHORT_NAME}.vcf" 2>/dev/null || echo "0")
-PASS=$(grep -vc "^#" "$RESULTS_DIR/$COHORT_NAME/vcf/${COHORT_NAME}.pass.vcf" 2>/dev/null || echo "0")
-echo "  Raw variants  : $RAW"
-echo "  PASS variants : $PASS"
 echo ""
 echo "Done!"
-
 
 # Remove old Nextflow work directories (>7 days old)
 find "$PROJECT_DIR/work" \
@@ -156,6 +143,3 @@ find "$PROJECT_DIR/work" \
     -exec rm -rf {} +
 
 echo "Old work directories cleaned."
-
-echo ""
-echo "Done!"

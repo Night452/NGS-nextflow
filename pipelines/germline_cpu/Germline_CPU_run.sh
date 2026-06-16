@@ -38,6 +38,7 @@ echo ""
 
 mkdir -p "$RESULTS_DIR/$COHORT_NAME"
 
+APP_ROOT="$(cd "$PROJECT_DIR/../.." && pwd)"
 cd "$PROJECT_DIR"
 
 # ── Build reference indexes if missing (BWA + samtools + GATK dict) ───────────
@@ -154,19 +155,12 @@ GENO_MEM="${GENO_MEM} GB"
 VARFILT_MEM="${VARFILT_MEM} GB"
 PASSVCF_MEM="${PASSVCF_MEM} GB"
 
-MOUNTS=()
-SEEN_TOPS=()
-for d in "$PROJECT_DIR" "$FASTQ_PATH" "$REF_DIR" "$RESULTS_DIR"; do
-    top="/$(echo "$d" | cut -d/ -f2)"   # e.g. /mnt, /home, /data
-    already_seen=0
-    for s in "${SEEN_TOPS[@]}"; do
-        [[ "$s" == "$top" ]] && already_seen=1 && break
-    done
-    if [[ "$already_seen" -eq 0 ]]; then
-        MOUNTS+=(-v "$top":"$top")
-        SEEN_TOPS+=("$top")
-    fi
-done
+MOUNTS=(
+    -v "$APP_ROOT":"$APP_ROOT"
+    -v "$FASTQ_PATH":"$FASTQ_PATH"
+    -v "$REF_DIR":"$REF_DIR"
+    -v "$RESULTS_DIR":"$RESULTS_DIR"
+)
 
 docker run --rm \
     "${MOUNTS[@]}" \
@@ -175,6 +169,7 @@ docker run --rm \
     -e NXF_DOCKER_LEGACY=true \
     nextflow/nextflow:26.04.3 \
     nextflow run Germline_CPU.nf -c Germline_CPU.config \
+    -work-dir "$PROJECT_DIR/work" \
     --reads "${FASTQ_PATH}/*_R{1,2}.fastq.gz" \
     --reference "$REF_DIR/$REF_FASTA" \
     --outdir "$RESULTS_DIR/$COHORT_NAME" \
@@ -217,7 +212,7 @@ echo "  PASS variants : $PASS"
 echo ""
 
 # Remove old Nextflow work directories (>7 days old)
-find "$PROJECT_DIR/../../work" \
+find "$PROJECT_DIR/work" \
     -mindepth 1 \
     -maxdepth 1 \
     -type d \

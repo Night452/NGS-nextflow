@@ -18,6 +18,7 @@ params.reads            = null
 params.reference        = null
 params.outdir           = null
 params.parabricks_image = "nvcr.io/nvidia/clara/clara-parabricks:4.7.0-1"
+params.low_memory       = false
 
 // ── Process 1: FastQC ─────────────────────────────────────────────────────────
 process FASTQC {
@@ -77,7 +78,8 @@ process FQ2BAM {
         --ref ${reference} \\
         --in-fq ${reads[0]} ${reads[1]} "${rg}" \\
         --out-bam ${sample_id}.bam \\
-        --num-gpus 1
+        --num-gpus 1 \\
+        ${params.low_memory ? '--low-memory' : ''}
 
     [ -s "${sample_id}.bam" ] || { echo "ERROR: empty BAM for ${sample_id}"; exit 1; }
     """
