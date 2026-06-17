@@ -1,0 +1,95 @@
+Jun-17 01:52:39.009 [main] DEBUG nextflow.cli.Launcher - $> nextflow run Germline_pipeline.nf -c Germline_pipeline.config -work-dir /mnt/d/downloads/nextflow/pipelines/germline_gpu/work --reads '/mnt/d/downloads/nextflow/Data/Raw/*_R{1,2}.fastq.gz' --reference /mnt/d/downloads/nextflow/Data/Ref/tmp/ref/test.fa --outdir /mnt/d/downloads/nextflow/results/test --cohort_name test --fastqc_cpus 6 --fastqc_mem '8 GB' --fq2bam_cpus 6 --fq2bam_mem '8 GB' --hc_cpus 6 --hc_mem '8 GB' --geno_cpus 6 --geno_mem '4 GB' --varfilt_cpus 2 --varfilt_mem '4 GB' --passvcf_cpus 1 --passvcf_mem '2 GB' -resume
+Jun-17 01:52:39.160 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 26.04.3
+Jun-17 01:52:39.212 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/.nextflow/plugins; core-plugins: nf-amazon@3.9.1,nf-azure@1.22.5,nf-cloudcache@0.6.0,nf-codecommit@0.5.2,nf-console@1.3.0,nf-google@1.27.3,nf-k8s@1.5.4,nf-seqera@0.20.1,nf-tower@1.28.0,nf-wave@1.21.0
+Jun-17 01:52:39.253 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Jun-17 01:52:39.257 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Jun-17 01:52:39.261 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.14.1 in 'deployment' mode
+Jun-17 01:52:39.283 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Jun-17 01:52:39.502 [main] DEBUG nextflow.plugin.PluginUpdater - Using plugin repository: HttpPluginRepository [registry]; url=https://registry.nextflow.io/api
+Jun-17 01:52:39.522 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Jun-17 01:52:39.568 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /mnt/d/downloads/nextflow/pipelines/germline_gpu/Germline_pipeline.config
+Jun-17 01:52:39.570 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /mnt/d/downloads/nextflow/pipelines/germline_gpu/Germline_pipeline.config
+Jun-17 01:52:39.576 [main] DEBUG nextflow.config.ConfigParserFactory - Using config parser v2
+Jun-17 01:52:39.596 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Jun-17 01:52:40.125 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Jun-17 01:52:40.125 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Jun-17 01:52:40.153 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /.nextflow/secrets/store.json
+Jun-17 01:52:40.158 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@367f0121] - activable => nextflow.secret.LocalSecretsProvider@367f0121
+Jun-17 01:52:40.185 [main] DEBUG nextflow.cli.CmdRun - Launching `Germline_pipeline.nf` [extravagant_meitner] - revision: 785649ae98
+Jun-17 01:52:40.306 [main] DEBUG nextflow.Session - Session UUID: 2a7e4e10-8213-4281-830e-d46ceb64a600
+Jun-17 01:52:40.307 [main] DEBUG nextflow.Session - Run name: extravagant_meitner
+Jun-17 01:52:40.308 [main] DEBUG nextflow.Session - Executor pool size: 8
+Jun-17 01:52:40.319 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Jun-17 01:52:40.326 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=24; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Jun-17 01:52:40.363 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 26.04.3 build 12259
+  Created: 28-05-2026 08:48 UTC 
+  System: Linux 6.6.114.1-microsoft-standard-WSL2
+  Runtime: Groovy 4.0.31 on OpenJDK 64-Bit Server VM 21.0.11+10-LTS
+  Encoding: UTF-8 (UTF-8)
+  Process: 1@6bb06f05b3f2 [172.17.0.2]
+  CPUs: 8 - Mem: 11.7 GB (9 GB) - Swap: 8 GB (8 GB)
+Jun-17 01:52:40.408 [main] DEBUG nextflow.Session - Work-dir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work [v9fs]
+Jun-17 01:52:40.409 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /mnt/d/downloads/nextflow/pipelines/germline_gpu/bin
+Jun-17 01:52:40.420 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Jun-17 01:52:40.431 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Jun-17 01:52:40.433 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Jun-17 01:52:40.468 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Jun-17 01:52:40.483 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 9; maxThreads: 1000
+Jun-17 01:52:40.678 [main] DEBUG nextflow.Session - Session start
+Jun-17 01:52:40.684 [main] DEBUG nextflow.script.ScriptLoaderFactory - Using script parser v2
+Jun-17 01:52:41.440 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Jun-17 01:52:41.623 [main] INFO  nextflow.Nextflow - 
+============================================
+ GERMLINE VARIANT CALLING PIPELINE
+============================================
+ reads      : /mnt/d/downloads/nextflow/Data/Raw/*_R{1,2}.fastq.gz
+ reference  : /mnt/d/downloads/nextflow/Data/Ref/tmp/ref/test.fa
+ outdir     : /mnt/d/downloads/nextflow/results/test
+ cohort     : test
+============================================
+
+Jun-17 01:52:41.745 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:FASTQC` matches process FASTQC
+Jun-17 01:52:41.750 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-17 01:52:41.751 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-17 01:52:41.761 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Jun-17 01:52:41.772 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=8; memory=11.7 GB; capacity=8; pollInterval=100ms; dumpInterval=5m
+Jun-17 01:52:41.776 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Jun-17 01:52:41.822 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'FASTQC': maxForks=0; fair=false; array=0
+Jun-17 01:52:41.866 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:FQ2BAM` matches process FQ2BAM
+Jun-17 01:52:41.869 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-17 01:52:41.869 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-17 01:52:41.871 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'FQ2BAM': maxForks=0; fair=false; array=0
+Jun-17 01:52:41.880 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:HAPLOTYPE_CALLER` matches process HAPLOTYPE_CALLER
+Jun-17 01:52:41.883 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-17 01:52:41.884 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-17 01:52:41.885 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HAPLOTYPE_CALLER': maxForks=0; fair=false; array=0
+Jun-17 01:52:41.906 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:GENOTYPE_GVCFS` matches process GENOTYPE_GVCFS
+Jun-17 01:52:41.908 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-17 01:52:41.908 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-17 01:52:41.909 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'GENOTYPE_GVCFS': maxForks=0; fair=false; array=0
+Jun-17 01:52:41.916 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:VARIANT_FILTRATION` matches process VARIANT_FILTRATION
+Jun-17 01:52:41.920 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-17 01:52:41.920 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-17 01:52:41.922 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'VARIANT_FILTRATION': maxForks=0; fair=false; array=0
+Jun-17 01:52:41.927 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:PASS_VCF` matches process PASS_VCF
+Jun-17 01:52:41.928 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-17 01:52:41.929 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-17 01:52:41.930 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'PASS_VCF': maxForks=0; fair=false; array=0
+Jun-17 01:52:41.935 [main] DEBUG nextflow.Session - Process names: FASTQC, HAPLOTYPE_CALLER, VARIANT_FILTRATION, FQ2BAM, GENOTYPE_GVCFS, PASS_VCF
+Jun-17 01:52:41.939 [main] DEBUG nextflow.Session - Igniting dataflow network (7)
+Jun-17 01:52:41.947 [PathVisitor-1] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /mnt/d/downloads/nextflow/Data/Raw/; pattern: *_R{1,2}.fastq.gz; options: [checkIfExists:true]
+Jun-17 01:52:41.948 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > FASTQC
+Jun-17 01:52:41.949 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > FQ2BAM
+Jun-17 01:52:41.950 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HAPLOTYPE_CALLER
+Jun-17 01:52:41.950 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > GENOTYPE_GVCFS
+Jun-17 01:52:41.951 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > VARIANT_FILTRATION
+Jun-17 01:52:41.953 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > PASS_VCF
+Jun-17 01:52:41.954 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Main: /mnt/d/downloads/nextflow/pipelines/germline_gpu/Germline_pipeline.nf
+Jun-17 01:52:41.954 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Jun-17 01:52:41.955 [main] DEBUG nextflow.Session - Session await
+Jun-17 01:52:42.247 [Actor Thread 6] INFO  nextflow.processor.TaskProcessor - [36/fd7544] Cached process > FASTQC (sample1)
+Jun-17 01:52:42.280 [Actor Thread 6] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=24; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Jun-17 01:52:42.345 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-17 01:52:42.347 [Task submitter] INFO  nextflow.Session - [5f/3b6cd0] Submitted process > FQ2BAM (sample1)

@@ -1,0 +1,256 @@
+Jun-16 19:46:29.846 [main] DEBUG nextflow.cli.Launcher - $> nextflow run Germline_pipeline.nf -c Germline_pipeline.config -work-dir /mnt/d/downloads/nextflow/pipelines/germline_gpu/work --reads '/mnt/d/downloads/nextflow/Data/Raw/*_R{1,2}.fastq.gz' --reference /mnt/d/downloads/nextflow/Data/Ref/tmp/ref/test.fa --outdir /mnt/d/downloads/nextflow/results/test1 --cohort_name test1 --fastqc_cpus 6 --fastqc_mem '8 GB' --fq2bam_cpus 6 --fq2bam_mem '8 GB' --hc_cpus 6 --hc_mem '8 GB' --geno_cpus 6 --geno_mem '4 GB' --varfilt_cpus 2 --varfilt_mem '4 GB' --passvcf_cpus 1 --passvcf_mem '2 GB' --low_memory -resume
+Jun-16 19:46:30.184 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 26.04.3
+Jun-16 19:46:30.298 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/.nextflow/plugins; core-plugins: nf-amazon@3.9.1,nf-azure@1.22.5,nf-cloudcache@0.6.0,nf-codecommit@0.5.2,nf-console@1.3.0,nf-google@1.27.3,nf-k8s@1.5.4,nf-seqera@0.20.1,nf-tower@1.28.0,nf-wave@1.21.0
+Jun-16 19:46:30.403 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Jun-16 19:46:30.414 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Jun-16 19:46:30.423 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.14.1 in 'deployment' mode
+Jun-16 19:46:30.484 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Jun-16 19:46:31.077 [main] DEBUG nextflow.plugin.PluginUpdater - Using plugin repository: HttpPluginRepository [registry]; url=https://registry.nextflow.io/api
+Jun-16 19:46:31.135 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Jun-16 19:46:31.265 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /mnt/d/downloads/nextflow/pipelines/germline_gpu/Germline_pipeline.config
+Jun-16 19:46:31.273 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /mnt/d/downloads/nextflow/pipelines/germline_gpu/Germline_pipeline.config
+Jun-16 19:46:31.284 [main] DEBUG nextflow.config.ConfigParserFactory - Using config parser v2
+Jun-16 19:46:31.323 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Jun-16 19:46:32.618 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Jun-16 19:46:32.620 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Jun-16 19:46:32.684 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /.nextflow/secrets/store.json
+Jun-16 19:46:32.695 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@fe7b6b0] - activable => nextflow.secret.LocalSecretsProvider@fe7b6b0
+Jun-16 19:46:32.780 [main] DEBUG nextflow.cli.CmdRun - Launching `Germline_pipeline.nf` [cheeky_agnesi] - revision: 93e48f517b
+Jun-16 19:46:33.042 [main] DEBUG nextflow.Session - Session UUID: 2a7e4e10-8213-4281-830e-d46ceb64a600
+Jun-16 19:46:33.045 [main] DEBUG nextflow.Session - Run name: cheeky_agnesi
+Jun-16 19:46:33.050 [main] DEBUG nextflow.Session - Executor pool size: 8
+Jun-16 19:46:33.082 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Jun-16 19:46:33.101 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=24; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Jun-16 19:46:33.195 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 26.04.3 build 12259
+  Created: 28-05-2026 08:48 UTC 
+  System: Linux 6.6.114.1-microsoft-standard-WSL2
+  Runtime: Groovy 4.0.31 on OpenJDK 64-Bit Server VM 21.0.11+10-LTS
+  Encoding: UTF-8 (UTF-8)
+  Process: 1@88cb6947679b [172.17.0.2]
+  CPUs: 8 - Mem: 11.7 GB (9.3 GB) - Swap: 8 GB (8 GB)
+Jun-16 19:46:33.392 [main] DEBUG nextflow.Session - Work-dir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work [v9fs]
+Jun-16 19:46:33.395 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /mnt/d/downloads/nextflow/pipelines/germline_gpu/bin
+Jun-16 19:46:33.423 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Jun-16 19:46:33.450 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Jun-16 19:46:33.456 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Jun-16 19:46:33.546 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Jun-16 19:46:33.578 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 9; maxThreads: 1000
+Jun-16 19:46:34.091 [main] DEBUG nextflow.Session - Session start
+Jun-16 19:46:34.103 [main] DEBUG nextflow.script.ScriptLoaderFactory - Using script parser v2
+Jun-16 19:46:36.742 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Jun-16 19:46:37.183 [main] INFO  nextflow.Nextflow - 
+============================================
+ GERMLINE VARIANT CALLING PIPELINE
+============================================
+ reads      : /mnt/d/downloads/nextflow/Data/Raw/*_R{1,2}.fastq.gz
+ reference  : /mnt/d/downloads/nextflow/Data/Ref/tmp/ref/test.fa
+ outdir     : /mnt/d/downloads/nextflow/results/test1
+ cohort     : test1
+============================================
+
+Jun-16 19:46:37.506 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:FASTQC` matches process FASTQC
+Jun-16 19:46:37.528 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-16 19:46:37.530 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-16 19:46:37.557 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Jun-16 19:46:37.584 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=8; memory=11.7 GB; capacity=8; pollInterval=100ms; dumpInterval=5m
+Jun-16 19:46:37.592 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Jun-16 19:46:37.705 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'FASTQC': maxForks=0; fair=false; array=0
+Jun-16 19:46:37.820 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:FQ2BAM` matches process FQ2BAM
+Jun-16 19:46:37.825 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-16 19:46:37.827 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-16 19:46:37.830 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'FQ2BAM': maxForks=0; fair=false; array=0
+Jun-16 19:46:37.861 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:HAPLOTYPE_CALLER` matches process HAPLOTYPE_CALLER
+Jun-16 19:46:37.867 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-16 19:46:37.867 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-16 19:46:37.870 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HAPLOTYPE_CALLER': maxForks=0; fair=false; array=0
+Jun-16 19:46:37.916 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:GENOTYPE_GVCFS` matches process GENOTYPE_GVCFS
+Jun-16 19:46:37.920 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-16 19:46:37.921 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-16 19:46:37.923 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'GENOTYPE_GVCFS': maxForks=0; fair=false; array=0
+Jun-16 19:46:37.945 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:VARIANT_FILTRATION` matches process VARIANT_FILTRATION
+Jun-16 19:46:37.950 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-16 19:46:37.951 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-16 19:46:37.954 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'VARIANT_FILTRATION': maxForks=0; fair=false; array=0
+Jun-16 19:46:37.975 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:PASS_VCF` matches process PASS_VCF
+Jun-16 19:46:37.979 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Jun-16 19:46:37.981 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun-16 19:46:37.985 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'PASS_VCF': maxForks=0; fair=false; array=0
+Jun-16 19:46:37.994 [main] DEBUG nextflow.Session - Process names: FASTQC, HAPLOTYPE_CALLER, VARIANT_FILTRATION, FQ2BAM, GENOTYPE_GVCFS, PASS_VCF
+Jun-16 19:46:38.004 [main] DEBUG nextflow.Session - Igniting dataflow network (7)
+Jun-16 19:46:38.024 [PathVisitor-1] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /mnt/d/downloads/nextflow/Data/Raw/; pattern: *_R{1,2}.fastq.gz; options: [checkIfExists:true]
+Jun-16 19:46:38.025 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > FASTQC
+Jun-16 19:46:38.028 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > FQ2BAM
+Jun-16 19:46:38.030 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HAPLOTYPE_CALLER
+Jun-16 19:46:38.033 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > GENOTYPE_GVCFS
+Jun-16 19:46:38.035 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > VARIANT_FILTRATION
+Jun-16 19:46:38.040 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > PASS_VCF
+Jun-16 19:46:38.042 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Main: /mnt/d/downloads/nextflow/pipelines/germline_gpu/Germline_pipeline.nf
+Jun-16 19:46:38.042 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Jun-16 19:46:38.043 [main] DEBUG nextflow.Session - Session await
+Jun-16 19:46:38.645 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-16 19:46:38.653 [Task submitter] INFO  nextflow.Session - [36/fd7544] Submitted process > FASTQC (sample1)
+Jun-16 19:51:37.716 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: FASTQC (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/36/fd754472918f06f601c03cb4ac1b94]
+Jun-16 19:51:38.998 [Task submitter] DEBUG n.processor.TaskPollingMonitor - %% executor local > tasks in the submission queue: 1 -- tasks to be submitted are shown below
+~> TaskHandler[id: 2; name: FQ2BAM (sample1); status: NEW; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/f3/a0f4ecbb8cc1bdc17ece3a3aa4e5cc]
+Jun-16 19:56:37.765 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: FASTQC (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/36/fd754472918f06f601c03cb4ac1b94]
+Jun-16 19:56:39.092 [Task submitter] DEBUG n.processor.TaskPollingMonitor - %% executor local > tasks in the submission queue: 1 -- tasks to be submitted are shown below
+~> TaskHandler[id: 2; name: FQ2BAM (sample1); status: NEW; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/f3/a0f4ecbb8cc1bdc17ece3a3aa4e5cc]
+Jun-16 20:01:37.788 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 1; name: FASTQC (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/36/fd754472918f06f601c03cb4ac1b94]
+Jun-16 20:01:39.173 [Task submitter] DEBUG n.processor.TaskPollingMonitor - %% executor local > tasks in the submission queue: 1 -- tasks to be submitted are shown below
+~> TaskHandler[id: 2; name: FQ2BAM (sample1); status: NEW; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/f3/a0f4ecbb8cc1bdc17ece3a3aa4e5cc]
+Jun-16 20:02:41.661 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: FASTQC (sample1); status: COMPLETED; exit: 0; error: -; workDir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/36/fd754472918f06f601c03cb4ac1b94]
+Jun-16 20:02:41.664 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=24; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Jun-16 20:02:41.706 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-16 20:02:41.708 [Task submitter] INFO  nextflow.Session - [f3/a0f4ec] Submitted process > FQ2BAM (sample1)
+Jun-16 20:02:41.792 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=24; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Jun-16 20:06:38.000 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: FQ2BAM (sample1); status: RUNNING; exit: -; error: -; workDir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/f3/a0f4ecbb8cc1bdc17ece3a3aa4e5cc]
+Jun-16 20:10:04.944 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: FQ2BAM (sample1); status: COMPLETED; exit: 0; error: -; workDir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/f3/a0f4ecbb8cc1bdc17ece3a3aa4e5cc]
+Jun-16 20:10:06.060 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-16 20:10:06.064 [Task submitter] INFO  nextflow.Session - [62/df64f9] Submitted process > HAPLOTYPE_CALLER (sample1)
+Jun-16 20:10:14.375 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: HAPLOTYPE_CALLER (sample1); status: COMPLETED; exit: 255; error: -; workDir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/62/df64f90d85ee8770a353ff9e3cdc68]
+Jun-16 20:10:14.417 [TaskFinalizer-3] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=HAPLOTYPE_CALLER (sample1); work-dir=/mnt/d/downloads/nextflow/pipelines/germline_gpu/work/62/df64f90d85ee8770a353ff9e3cdc68
+  error [nextflow.exception.ProcessFailedException]: Process `HAPLOTYPE_CALLER (sample1)` terminated with an error exit status (255)
+Jun-16 20:10:14.486 [TaskFinalizer-3] INFO  nextflow.processor.TaskProcessor - [62/df64f9] NOTE: Process `HAPLOTYPE_CALLER (sample1)` terminated with an error exit status (255) -- Execution is retried (1)
+Jun-16 20:10:14.534 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-16 20:10:14.536 [Task submitter] INFO  nextflow.Session - [45/8e0e87] Re-submitted process > HAPLOTYPE_CALLER (sample1)
+Jun-16 20:10:18.187 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 4; name: HAPLOTYPE_CALLER (sample1); status: COMPLETED; exit: 255; error: -; workDir: /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/45/8e0e8762f9d2e937a1f8944d46b0b2]
+Jun-16 20:10:18.196 [TaskFinalizer-4] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=HAPLOTYPE_CALLER (sample1); work-dir=/mnt/d/downloads/nextflow/pipelines/germline_gpu/work/45/8e0e8762f9d2e937a1f8944d46b0b2
+  error [nextflow.exception.ProcessFailedException]: Process `HAPLOTYPE_CALLER (sample1)` terminated with an error exit status (255)
+Jun-16 20:10:18.268 [TaskFinalizer-4] ERROR nextflow.processor.TaskProcessor - Error executing process > 'HAPLOTYPE_CALLER (sample1)'
+
+Caused by:
+  Process `HAPLOTYPE_CALLER (sample1)` terminated with an error exit status (255)
+
+
+Command executed:
+
+  echo "INFO: HaplotypeCaller for sample1"
+  
+      cat > main_chroms.bed << 'EOF'
+  chr1	0	248956422
+  chr2	0	242193529
+  chr3	0	198295559
+  chr4	0	190214555
+  chr5	0	181538259
+  chr6	0	170805979
+  chr7	0	159345973
+  chr8	0	145138636
+  chr9	0	138394717
+  chr10	0	133797422
+  chr11	0	135086622
+  chr12	0	133275309
+  chr13	0	114364328
+  chr14	0	107043718
+  chr15	0	101991189
+  chr16	0	90338345
+  chr17	0	83257441
+  chr18	0	80373285
+  chr19	0	58617616
+  chr20	0	64444167
+  chr21	0	46709983
+  chr22	0	50818468
+  chrX	0	156040895
+  chrY	0	57227415
+  chrM	0	16569
+  EOF
+  
+      pbrun haplotypecaller \
+          --ref test.fa \
+          --in-bam sample1.bam \
+          --out-variants sample1.g.vcf \
+          --gvcf \
+          --num-gpus 1 \
+          --interval-file main_chroms.bed
+  
+      [ -s "sample1.g.vcf" ] || { echo "ERROR: empty GVCF for sample1"; exit 1; }
+
+Command exit status:
+  255
+
+Command output:
+  INFO: HaplotypeCaller for sample1
+  Please visit https://docs.nvidia.com/clara/#parabricks for detailed documentation
+  
+  /usr/local/parabricks/binaries/bin/htvc /mnt/d/downloads/nextflow/Data/Ref/tmp/ref/test.fa /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/f3/a0f4ecbb8cc1bdc17ece3a3aa4e5cc/sample1.bam 1 -o sample1.g.vcf -nt 5 -g -L main_chroms.bed
+  Process exited with failure. Please check the logs.
+  Process exited with failure. Please check the logs.
+  For technical support visit https://docs.nvidia.com/clara/index.html#parabricks
+  Exiting...
+  
+  Could not run haplotypecaller
+  Exiting pbrun ...
+
+Command error:
+  INFO: HaplotypeCaller for sample1
+  Please visit https://docs.nvidia.com/clara/#parabricks for detailed documentation
+  
+  [PB Info 2026-Jun-16 20:10:17] ------------------------------------------------------------------------------
+  [PB Info 2026-Jun-16 20:10:17] ||                 Parabricks accelerated Genomics Pipeline                 ||
+  [PB Info 2026-Jun-16 20:10:17] ||                              Version 4.7.0-1                             ||
+  [PB Info 2026-Jun-16 20:10:17] ||                         GPU-GATK4 HaplotypeCaller                        ||
+  [PB Info 2026-Jun-16 20:10:17] ------------------------------------------------------------------------------
+  [PB Info 2026-Jun-16 20:10:17] 0 /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/f3/a0f4ecbb8cc1bdc17ece3a3aa4e5cc/sample1.bamsample1.g.vcf
+  [PB [31mError[0m 2026-Jun-16 20:10:17][src/fileHandleCommon.cpp:855] Wrong Interval input: chr1:1-248956422, exiting.
+  /usr/local/parabricks/binaries/bin/htvc /mnt/d/downloads/nextflow/Data/Ref/tmp/ref/test.fa /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/f3/a0f4ecbb8cc1bdc17ece3a3aa4e5cc/sample1.bam 1 -o sample1.g.vcf -nt 5 -g -L main_chroms.bed
+  Process exited with failure. Please check the logs.
+  Process exited with failure. Please check the logs.
+  For technical support visit https://docs.nvidia.com/clara/index.html#parabricks
+  Exiting...
+  
+  Could not run haplotypecaller
+  Exiting pbrun ...
+
+Work dir:
+  /mnt/d/downloads/nextflow/pipelines/germline_gpu/work/45/8e0e8762f9d2e937a1f8944d46b0b2
+
+Container:
+  nvcr.io/nvidia/clara/clara-parabricks:4.7.0-1
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+Jun-16 20:10:18.279 [TaskFinalizer-4] DEBUG nextflow.Session - Session aborted -- Cause: Process `HAPLOTYPE_CALLER (sample1)` terminated with an error exit status (255)
+Jun-16 20:10:18.283 [main] DEBUG nextflow.Session - Session await > all processes finished
+Jun-16 20:10:18.372 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Jun-16 20:10:18.372 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Jun-16 20:10:18.388 [TaskFinalizer-4] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=2; failedCount=2; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=1; abortedCount=0; succeedDuration=2h 20m 37s; failedDuration=1m 11s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=2; peakCpus=12; peakMemory=16 GB; ]
+Jun-16 20:10:18.388 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=2; failedCount=2; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=1; abortedCount=0; succeedDuration=2h 20m 37s; failedDuration=1m 11s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=2; peakCpus=12; peakMemory=16 GB; ]
+Jun-16 20:10:18.390 [TaskFinalizer-4] DEBUG nextflow.Session - null
+java.lang.InterruptedException
+	at java.base/java.lang.Object.wait0(Native Method)
+	at java.base/java.lang.Object.wait(Object.java:366)
+	at java.base/java.lang.Thread.join(Thread.java:2079)
+	at java.base/java.lang.Thread.join(Thread.java:2155)
+	at nextflow.trace.AnsiLogObserver.onFlowComplete(AnsiLogObserver.groovy:559)
+	at nextflow.Session$_notifyFlowComplete_lambda38.doCall(Session.groovy:1093)
+	at nextflow.Session.notifyEvent(Session.groovy:1123)
+	at nextflow.Session.notifyFlowComplete(Session.groovy:1093)
+	at nextflow.Session.shutdown0(Session.groovy:775)
+	at nextflow.Session.abort(Session.groovy:830)
+	at nextflow.Session.fault(Session.groovy:792)
+	at nextflow.processor.TaskPollingMonitor.finalizeTask(TaskPollingMonitor.groovy:753)
+	at nextflow.processor.TaskPollingMonitor.safeFinalizeTask(TaskPollingMonitor.groovy:736)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1341)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1096)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1009)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokePogoMethod(InvokerHelper.java:645)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(InvokerHelper.java:628)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethodSafe(InvokerHelper.java:82)
+	at nextflow.processor.TaskPollingMonitor$_checkTaskStatus_lambda8.doCall(TaskPollingMonitor.groovy:726)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Jun-16 20:10:18.685 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Jun-16 20:10:18.748 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye
