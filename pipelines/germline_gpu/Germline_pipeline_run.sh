@@ -106,7 +106,7 @@ docker run --rm \
     -e NXF_DOCKER_LEGACY=true \
     nextflow/nextflow:26.04.3 \
     nextflow run Germline_pipeline.nf -c Germline_pipeline.config \
-    -work-dir "$PROJECT_DIR/work" \
+    -work-dir "$RESULTS_DIR/$COHORT_NAME/work" \
     --reads "${FASTQ_PATH}/*_R{1,2}.fastq.gz" \
     --reference "$REF_DIR/$REF_FASTA" \
     --outdir "$RESULTS_DIR/$COHORT_NAME" \
@@ -148,7 +148,7 @@ echo "Done!"
 
 
 # Remove old Nextflow work directories (>7 days old)
-find "$PROJECT_DIR/work" \
+find "$RESULTS_DIR/$COHORT_NAME/work" \
     -mindepth 1 \
     -maxdepth 1 \
     -type d \

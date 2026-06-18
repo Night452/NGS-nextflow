@@ -9,7 +9,7 @@ from PySide6.QtGui import QFont, QTextCursor, QIcon
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QFileDialog, QTextEdit, QGroupBox, 
-    QMessageBox, QCheckBox, QSlider, QProgressBar, QTabWidget, QDialog, QStyle
+    QMessageBox, QCheckBox, QSlider, QProgressBar, QTabWidget, QDialog, QStyle, QSizeGrip
 )
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -518,10 +518,85 @@ QPushButton:disabled {
         btn_bld = self.btn_build if hasattr(self, 'btn_build') else None
         self.parent_gui.start_process(cmd, self.btn_run, self.btn_stop, btn_bld, env)
 
+class TitleBar(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent_gui = parent
+        self.setFixedHeight(32)
+        self.setStyleSheet("background-color: #000000;")
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        self.lbl_title = QLabel("  Nextflow Genomics GUI")
+        self.lbl_title.setStyleSheet("color: #b3b3b3; font-family: 'Segoe UI'; font-size: 12px;")
+        
+        self.btn_min = QPushButton("—")
+        self.btn_max = QPushButton("◻")
+        self.btn_close = QPushButton("✕")
+        
+        for btn in [self.btn_min, self.btn_max, self.btn_close]:
+            btn.setFixedSize(46, 32)
+            btn.setCursor(Qt.ArrowCursor)
+            
+        self.btn_min.setStyleSheet("""
+            QPushButton { background: transparent; color: #b3b3b3; border: none; font-size: 14px; border-radius: 0px; padding: 0px; }
+            QPushButton:hover { background: #2a2a2a; color: white; }
+            QPushButton:pressed { background: #3a3a3a; color: white; }
+        """)
+        self.btn_max.setStyleSheet("""
+            QPushButton { background: transparent; color: #b3b3b3; border: none; font-size: 14px; border-radius: 0px; padding: 0px; }
+            QPushButton:hover { background: #2a2a2a; color: white; }
+            QPushButton:pressed { background: #3a3a3a; color: white; }
+        """)
+        self.btn_close.setStyleSheet("""
+            QPushButton { background: transparent; color: #b3b3b3; border: none; font-size: 14px; border-radius: 0px; padding: 0px; }
+            QPushButton:hover { background: #e81123; color: white; }
+            QPushButton:pressed { background: #8b0a14; color: white; }
+        """)
+        
+        layout.addWidget(self.lbl_title)
+        layout.addStretch()
+        layout.addWidget(self.btn_min)
+        layout.addWidget(self.btn_max)
+        layout.addWidget(self.btn_close)
+        
+        self.btn_min.clicked.connect(self.parent_gui.showMinimized)
+        self.btn_max.clicked.connect(self.toggle_max)
+        self.btn_close.clicked.connect(self.parent_gui.close)
+        
+        self.start_pos = None
+
+    def toggle_max(self):
+        if self.parent_gui.isMaximized():
+            self.parent_gui.showNormal()
+            self.btn_max.setText("◻")
+        else:
+            self.parent_gui.showMaximized()
+            self.btn_max.setText("❐")
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.start_pos = event.globalPosition().toPoint()
+
+    def mouseMoveEvent(self, event):
+        if self.start_pos is not None:
+            delta = event.globalPosition().toPoint() - self.start_pos
+            self.parent_gui.move(self.parent_gui.pos() + delta)
+            self.start_pos = event.globalPosition().toPoint()
+
+    def mouseReleaseEvent(self, event):
+        self.start_pos = None
+        
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.toggle_max()
 
 class NextflowGUI(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
         self.setWindowTitle("Nextflow Genomics GUI")
         self.resize(1000, 800)
         
@@ -549,10 +624,22 @@ class NextflowGUI(QMainWindow):
 
     def setup_ui(self):
         main_widget = QWidget()
+        main_widget.setObjectName("main_widget")
+        main_widget.setStyleSheet("#main_widget { border: 1px solid #333333; }")
         self.setCentralWidget(main_widget)
-        main_layout = QVBoxLayout(main_widget)
+        
+        wrapper_layout = QVBoxLayout(main_widget)
+        wrapper_layout.setContentsMargins(0, 0, 0, 0)
+        wrapper_layout.setSpacing(0)
+        
+        self.title_bar = TitleBar(self)
+        wrapper_layout.addWidget(self.title_bar)
+        
+        content_widget = QWidget()
+        main_layout = QVBoxLayout(content_widget)
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(15)
+        wrapper_layout.addWidget(content_widget)
 
         top_bar = QHBoxLayout()
         title = QLabel("Genomics Pipeline Manager")
@@ -619,6 +706,12 @@ QPushButton:pressed {
         self.console_group.setLayout(c_layout)
         self.console_group.setVisible(False)
         main_layout.addWidget(self.console_group, stretch=1)
+        
+        bottom_layout = QHBoxLayout()
+        bottom_layout.addStretch()
+        size_grip = QSizeGrip(self)
+        bottom_layout.addWidget(size_grip)
+        wrapper_layout.addLayout(bottom_layout)
 
     def browse_out(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Output Directory")

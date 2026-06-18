@@ -104,7 +104,7 @@ docker run --rm \
     -e NXF_DOCKER_LEGACY=true \
     nextflow/nextflow:26.04.3 \
     nextflow run CHIPseq_GPU.nf -c CHIPseq_GPU.config \
-    -work-dir "$PROJECT_DIR/work" \
+    -work-dir "$RESULTS_DIR/$PROJECT_NAME/work" \
     $INPUT_ARGS \
     --reference "$REF_DIR/$REF_FASTA" \
     --outdir "$RESULTS_DIR/$PROJECT_NAME" \
@@ -135,7 +135,7 @@ echo ""
 echo "Done!"
 
 # Remove old Nextflow work directories (>7 days old)
-find "$PROJECT_DIR/work" \
+find "$RESULTS_DIR/$PROJECT_NAME/work" \
     -mindepth 1 \
     -maxdepth 1 \
     -type d \
