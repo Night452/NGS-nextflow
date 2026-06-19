@@ -99,6 +99,25 @@ while true; do
     echo "=========================================================="
     echo " NEXTFLOW GERMLINE VARIANT CALLING - MAIN INTERFACE"
     echo "=========================================================="
+    echo ""
+
+    # Check Docker GPU visibility once on load
+    if [[ -z "$GPU_CHECKED" ]]; then
+        export GPU_CHECKED=1
+        if command -v docker &> /dev/null; then
+            echo -n "Checking GPU visibility for Docker containers... "
+            if docker run --rm --runtime=nvidia nvcr.io/nvidia/clara/clara-parabricks:4.7.0-1 nvidia-smi &> /dev/null; then
+                echo -e "\033[32mOK\033[0m"
+            else
+                echo -e "\033[31mFAILED\033[0m"
+                echo "WARNING: Docker cannot access the GPU using the NVIDIA runtime."
+                echo "Please check your NVIDIA Container Toolkit installation."
+                echo ""
+                sleep 2
+            fi
+        fi
+    fi
+    echo "=========================================================="
     echo "Please choose the pipeline you wish to run:"
     echo "  1) CPU Pipeline (BWA, GATK 4)"
     echo "  2) GPU Pipeline (NVIDIA Parabricks)"

@@ -696,6 +696,20 @@ class NextflowGUI(QMainWindow):
         self.active_build_btn = None
         
         self.setup_ui()
+        QTimer.singleShot(1000, self.check_gpu_visibility)
+
+    def check_gpu_visibility(self):
+        try:
+            cmd = ["docker", "run", "--rm", "--runtime=nvidia", "nvcr.io/nvidia/clara/clara-parabricks:4.7.0-1", "nvidia-smi"]
+            # Hide console window on Windows
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=10, startupinfo=startupinfo)
+            if res.returncode != 0:
+                QMessageBox.warning(self, "GPU Visibility Warning", "Docker failed to access the GPU using the NVIDIA runtime.\nPlease ensure NVIDIA Container Toolkit is correctly installed and configured.\n\nError output:\n" + res.stderr)
+        except Exception as e:
+            # Don't show an error if Docker is just not running, another part of the app might handle that
+            pass
 
     def setup_ui(self):
         main_widget = QWidget()
