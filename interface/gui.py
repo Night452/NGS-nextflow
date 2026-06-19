@@ -4,8 +4,8 @@ import psutil
 import subprocess
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QProcess, QProcessEnvironment, QTimer
-from PySide6.QtGui import QFont, QTextCursor, QIcon
+from PySide6.QtCore import Qt, QProcess, QProcessEnvironment, QTimer, QThread, Signal
+from PySide6.QtGui import QFont, QTextCursor, QIcon, QPainter, QColor
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QFileDialog, QTextEdit, QGroupBox, 
@@ -186,6 +186,46 @@ class LimitProgressBar(QProgressBar):
             x_pos = int(self.width() * self.limit_ratio)
             painter.fillRect(x_pos - 1, 0, 3, self.height(), QColor(255, 0, 0))
 
+class DockerMonitorThread(QThread):
+    stats_updated = Signal(float, float)
+
+    def __init__(self):
+        super().__init__()
+        self.running = True
+
+    def run(self):
+        import time, subprocess
+        while self.running:
+            doc_cpu = 0.0
+            doc_mem = 0.0
+            try:
+                res = subprocess.run(["docker", "stats", "--no-stream", "--format", "{{.CPUPerc}},{{.MemUsage}}"], capture_output=True, text=True)
+                if res.returncode == 0:
+                    lines = res.stdout.strip().split('\n')
+                    for line in lines:
+                        if not line: continue
+                        parts = line.split(',')
+                        if len(parts) == 2:
+                            cpu_str = parts[0].replace('%', '').strip()
+                            try: doc_cpu += float(cpu_str)
+                            except: pass
+                            
+                            mem_str = parts[1].split('/')[0].strip()
+                            val = 0.0
+                            if 'GiB' in mem_str or 'GB' in mem_str: val = float(mem_str.replace('GiB', '').replace('GB', '').strip())
+                            elif 'MiB' in mem_str or 'MB' in mem_str: val = float(mem_str.replace('MiB', '').replace('MB', '').strip()) / 1024.0
+                            elif 'KiB' in mem_str or 'KB' in mem_str: val = float(mem_str.replace('KiB', '').replace('KB', '').strip()) / (1024.0 * 1024.0)
+                            elif 'B' in mem_str: val = float(mem_str.replace('B', '').strip()) / (1024.0 * 1024.0 * 1024.0)
+                            doc_mem += val
+            except: pass
+            
+            self.stats_updated.emit(doc_cpu, doc_mem)
+            time.sleep(1.5)
+
+    def stop(self):
+        self.running = False
+        self.wait()
+
 class ResourceMonitor(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -196,20 +236,31 @@ class ResourceMonitor(QWidget):
         self.parent_gui = parent
         self.setup_ui()
         
+        self.doc_cpu = 0.0
+        self.doc_mem = 0.0
+        
+        self.docker_thread = DockerMonitorThread()
+        self.docker_thread.stats_updated.connect(self.update_docker_stats)
+        self.docker_thread.start()
+        
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_monitor)
         self.timer.start(1000)
+
+    def update_docker_stats(self, cpu, mem):
+        self.doc_cpu = cpu
+        self.doc_mem = mem
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
         
-        monitor_group = QGroupBox("Live Hardware Usage")
+        monitor_group = QGroupBox("Live Pipeline Usage (via Docker)")
         m_layout = QVBoxLayout()
         self.cpu_bar = LimitProgressBar()
-        self.cpu_bar.setFormat("CPU Usage: %p%")
+        self.cpu_bar.setFormat("Pipeline CPU: %p%")
         self.mem_bar = LimitProgressBar()
-        self.mem_bar.setFormat("RAM Usage: %p%")
+        self.mem_bar.setFormat("Pipeline RAM: %p%")
         self.vram_bar = LimitProgressBar()
         self.vram_bar.setFormat("VRAM Usage: %p%")
         m_layout.addWidget(self.cpu_bar)
@@ -252,23 +303,30 @@ class ResourceMonitor(QWidget):
         self.lbl_mem.setText(f"Max Memory (GB): {val} / {self.sys_mem_gb}")
 
     def update_monitor(self):
-        cpu = psutil.cpu_percent()
-        mem_info = psutil.virtual_memory()
+        cpu_sys_max = self.sys_cpus * 100
+        cpu_alloc_max = self.parent_gui.alloc_cpus * 100
+        cpu_used = min(self.doc_cpu, cpu_sys_max)
+        cpu_percent = (cpu_used / cpu_sys_max) * 100 if cpu_sys_max > 0 else 0
         
-        cpu_used_total = cpu * self.sys_cpus
-        cpu_max = self.sys_cpus * 100
-        self.cpu_bar.setValue(int(cpu))
-        self.cpu_bar.setFormat(f"CPU Usage: {int(cpu_used_total)}% / {cpu_max}%")
+        self.cpu_bar.setValue(int(cpu_percent))
+        self.cpu_bar.setFormat(f"Pipeline CPU: {int(self.doc_cpu)}% / {cpu_alloc_max}% (Limit)")
         self.cpu_bar.setLimitRatio(self.parent_gui.alloc_cpus / self.sys_cpus)
         
-        mem_total_gb = mem_info.total / (1024**3)
-        mem_used_gb = (mem_info.total - mem_info.available) / (1024**3)
-        self.mem_bar.setValue(int(mem_info.percent))
-        self.mem_bar.setFormat(f"RAM Usage: {mem_used_gb:.1f} GB / {mem_total_gb:.1f} GB")
-        self.mem_bar.setLimitRatio(self.parent_gui.alloc_mem / mem_total_gb)
+        mem_sys_max = self.sys_mem_gb
+        mem_alloc_max = self.parent_gui.alloc_mem
+        mem_used = min(self.doc_mem, mem_sys_max)
+        mem_percent = (mem_used / mem_sys_max) * 100 if mem_sys_max > 0 else 0
         
-        cpu_color = "#dc3545" if cpu > 85 else ("#d39e00" if cpu > 60 else "#28a745")
-        mem_color = "#dc3545" if mem_info.percent > 85 else ("#d39e00" if mem_info.percent > 60 else "#28a745")
+        self.mem_bar.setValue(int(mem_percent))
+        self.mem_bar.setFormat(f"Pipeline RAM: {self.doc_mem:.1f} GB / {mem_alloc_max:.1f} GB (Limit)")
+        self.mem_bar.setLimitRatio(self.parent_gui.alloc_mem / self.sys_mem_gb)
+        
+        # Color coding: Green if under 60% of alloc, Yellow if 60-85%, Red if over 85%
+        cpu_alloc_percent = (self.doc_cpu / cpu_alloc_max) * 100 if cpu_alloc_max > 0 else 0
+        mem_alloc_percent = (self.doc_mem / mem_alloc_max) * 100 if mem_alloc_max > 0 else 0
+        
+        cpu_color = "#dc3545" if cpu_alloc_percent > 85 else ("#d39e00" if cpu_alloc_percent > 60 else "#28a745")
+        mem_color = "#dc3545" if mem_alloc_percent > 85 else ("#d39e00" if mem_alloc_percent > 60 else "#28a745")
         
         self.cpu_bar.setStyleSheet(f"QProgressBar::chunk {{ background-color: {cpu_color}; border-radius: 5px; }}")
         self.mem_bar.setStyleSheet(f"QProgressBar::chunk {{ background-color: {mem_color}; border-radius: 5px; }}")

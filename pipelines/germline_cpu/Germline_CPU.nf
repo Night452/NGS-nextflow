@@ -114,6 +114,7 @@ process SORT_BAM {
 
     samtools sort \
         -@ ${task.cpus} \
+        -T /tmp/${sample_id}_tmp \
         -o ${sample_id}.sorted.bam \
         ${sam}
 
@@ -121,6 +122,9 @@ process SORT_BAM {
         echo "ERROR: empty sorted BAM"
         exit 1
     }
+
+    # Clean up temp files explicitly
+    rm -rf /tmp/${sample_id}_tmp*
     """
 }
 
@@ -152,12 +156,16 @@ process MARK_DUPLICATES {
     gatk MarkDuplicates \
         -I ${sorted_bam} \
         -O ${sample_id}.bam \
-        -M ${sample_id}.metrics.txt
+        -M ${sample_id}.metrics.txt \
+        --TMP_DIR /tmp
 
     [ -s "${sample_id}.bam" ] || {
         echo "ERROR: empty BAM"
         exit 1
     }
+
+    # Clean up temp files explicitly
+    rm -rf /tmp/*
     """
 }
 
