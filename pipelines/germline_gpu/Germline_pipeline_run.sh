@@ -50,6 +50,14 @@ if ! docker info 2>/dev/null | grep -iq "Runtimes.*nvidia"; then
     exit 1
 fi
 
+# Auto-detect VRAM to prevent Out-Of-Memory (OOM) crashes
+VRAM_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -n1)
+if [ -n "$VRAM_MB" ] && [ "$VRAM_MB" -lt 16000 ]; then
+    echo "WARNING: GPU VRAM is less than 16GB (${VRAM_MB} MB detected)."
+    echo "Automatically forcing Low Memory Mode to prevent crashes."
+    export LOW_MEMORY="1"
+fi
+
 mkdir -p "$RESULTS_DIR/$COHORT_NAME"
 
 APP_ROOT="$(cd "$PROJECT_DIR/../.." && pwd)"

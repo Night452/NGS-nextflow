@@ -424,6 +424,16 @@ class PipelineTab(QWidget):
             self.check_low_mem = QCheckBox("Low Memory Mode (<24GB VRAM)")
             self.check_low_mem.setChecked(False)
             i_layout.addWidget(self.check_low_mem)
+            
+        import os
+        self.check_singularity = QCheckBox("Use Singularity (HPC Mode)")
+        self.check_singularity.setChecked(False)
+        self.check_singularity.setStyleSheet("color: #ffb703; font-weight: bold;")
+        if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".enable_singularity")):
+            self.check_singularity.setVisible(True)
+        else:
+            self.check_singularity.setVisible(False)
+        i_layout.addWidget(self.check_singularity)
 
         input_group.setLayout(i_layout)
         layout.addWidget(input_group)
@@ -565,13 +575,20 @@ QPushButton:disabled {
         if self.pipeline_type == "Germline CPU":
             script = APP_ROOT / "pipelines" / "germline_cpu" / "Germline_CPU_run.sh"
             cmd = ["bash", str(script).replace("\\", "/"), name, fastq_dir]
+            singularity_num = "1"
         elif self.pipeline_type == "Germline GPU":
             script = APP_ROOT / "pipelines" / "germline_gpu" / "Germline_pipeline_run.sh"
             cmd = ["bash", str(script).replace("\\", "/"), name, fastq_dir]
+            singularity_num = "2"
         elif self.pipeline_type == "ChIP-seq GPU":
             script = APP_ROOT / "pipelines" / "chipseq" / "CHIPseq_GPU_run.sh"
             sample = self.parent_gui.to_linux_path(self.input_sample.text().strip()) if self.input_sample.text().strip() else ""
             cmd = ["bash", str(script).replace("\\", "/"), name, fastq_dir, sample]
+            singularity_num = "3"
+
+        if hasattr(self, 'check_singularity') and self.check_singularity.isChecked() and self.check_singularity.isVisible():
+            script = APP_ROOT / "run_singularity.sh"
+            cmd = ["bash", str(script).replace("\\", "/"), singularity_num, fastq_dir, ref_dir, res_dir, name]
 
         btn_bld = self.btn_build if hasattr(self, 'btn_build') else None
         self.parent_gui.start_process(cmd, self.btn_run, self.btn_stop, btn_bld, env)

@@ -1,5 +1,6 @@
 # Nextflow Genomics Suite
 
+**Project made in BRIC-CDFD under the guidance of Dr. Akash Ranjan in the Laboratory of Computational & Functional Genomics.**
 This project provides containerized, Nextflow-based bioinformatics pipelines for **Germline Variant Calling** and **ChIP-seq Peak Calling**. It features a modern, tabbed PySide6 Desktop GUI for easy configuration, resource allocation, and execution.
 
 The pipelines support both CPU-only execution and GPU-accelerated execution using NVIDIA Clara Parabricks for blazing-fast performance. All dependencies are containerized via Docker, ensuring reproducibility.
@@ -319,3 +320,15 @@ If you prefer the terminal, you can execute the runner scripts directly.
    ```bash
    ./cleanup.sh
    ```
+
+## 🐋 Singularity / HPC Mode (Docker-less)
+If you are running on an Enterprise cluster or a Linux system where Docker is not available, you can use the interactive Singularity wrapper. This completely bypasses Docker and runs Nextflow and the Parabricks `.sif` containers natively.
+
+```bash
+# Make the wrapper executable
+chmod +x run_singularity.sh
+
+# Run the interactive wrapper
+./run_singularity.sh
+```
+The script will automatically check for Singularity, download Nextflow if missing, and ask you which pipeline you'd like to run.
