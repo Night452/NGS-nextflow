@@ -786,15 +786,24 @@ QPushButton:pressed {
         self.tabs.addTab(self.tab_chipseq_gpu, "ChIP-seq GPU")
         main_layout.addWidget(self.tabs)
 
-        self.console_group = QGroupBox("Console Output")
-        c_layout = QVBoxLayout()
+        # Create a detached standalone window for the console
+        self.console_window = QDialog(self)
+        self.console_window.setWindowTitle("Pipeline Execution Terminal")
+        self.console_window.resize(800, 600)
+        c_layout = QVBoxLayout(self.console_window)
         self.console = QTextEdit()
         self.console.setReadOnly(True)
         self.console.setFont(QFont("Consolas", 10))
+        self.console.setStyleSheet("background-color: #000000; color: #00fa9a;")
         c_layout.addWidget(self.console)
-        self.console_group.setLayout(c_layout)
-        self.console_group.setVisible(False)
-        main_layout.addWidget(self.console_group, stretch=1)
+        
+        # We don't add console_group to main_layout anymore
+        
+        # Override close event of console window to uncheck the button
+        def on_console_close(event):
+            self.btn_toggle_console.setChecked(False)
+            self.toggle_console()
+        self.console_window.closeEvent = on_console_close
         
         bottom_layout = QHBoxLayout()
         bottom_layout.addStretch()
@@ -808,9 +817,8 @@ QPushButton:pressed {
 
     def toggle_console(self):
         is_visible = self.btn_toggle_console.isChecked()
-        self.console_group.setVisible(is_visible)
-        
         if is_visible:
+            self.console_window.show()
             self.btn_toggle_console.setText(" Hide Terminal")
             self.btn_toggle_console.setStyleSheet("""
 QPushButton {
@@ -824,6 +832,7 @@ QPushButton:pressed {
 }
 """)
         else:
+            self.console_window.hide()
             self.btn_toggle_console.setText(" Show Terminal")
             self.btn_toggle_console.setStyleSheet("""
 QPushButton {
