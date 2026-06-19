@@ -121,6 +121,7 @@ echo "DEBUG PROJECT_DIR = $PROJECT_DIR" >&2
 docker run --rm \
     "${MOUNTS[@]}" \
     -w "$PROJECT_DIR" \
+    --gpus all \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e NXF_DOCKER_LEGACY=true \
     nextflow/nextflow:26.04.3 \
