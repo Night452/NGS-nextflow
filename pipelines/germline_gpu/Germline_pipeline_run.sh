@@ -51,16 +51,18 @@ if ! docker info 2>/dev/null | grep -iq "Runtimes.*nvidia"; then
 fi
 
 # Auto-detect VRAM to prevent Out-Of-Memory (OOM) crashes
-VRAM_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -n1)
-if [ -n "$VRAM_MB" ] && [ "$VRAM_MB" -lt 16000 ]; then
+VRAM_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -n1 || echo "")
+if [[ "$VRAM_MB" =~ ^[0-9]+$ ]] && [ "$VRAM_MB" -lt 16000 ]; then
     echo "WARNING: GPU VRAM is less than 16GB (${VRAM_MB} MB detected)."
     echo "Automatically forcing Low Memory Mode to prevent crashes."
     export LOW_MEMORY="1"
+elif [[ ! "$VRAM_MB" =~ ^[0-9]+$ ]]; then
+    echo "WARNING: Could not detect GPU VRAM. Assuming standard capacity."
 fi
 
 # Auto-detect total host GPUs for accurate Nextflow scheduling
-NUM_GPUS=$(nvidia-smi -L | wc -l)
-if [ -z "$NUM_GPUS" ] || [ "$NUM_GPUS" -lt 1 ]; then
+NUM_GPUS=$(nvidia-smi -L 2>/dev/null | wc -l || echo "1")
+if ! [[ "$NUM_GPUS" =~ ^[0-9]+$ ]] || [ "$NUM_GPUS" -lt 1 ]; then
     NUM_GPUS=1
 fi
 

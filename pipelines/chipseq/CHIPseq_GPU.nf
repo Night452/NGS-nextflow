@@ -76,6 +76,7 @@ process FQ2BAM {
     publishDir "${params.outdir}/bam", mode: 'copy'
     container params.parabricks_image
     accelerator 1, type: 'nvidia.com/gpu'
+    maxForks params.num_gpus
     errorStrategy 'retry'
     maxRetries 1
 
@@ -94,8 +95,11 @@ process FQ2BAM {
     tuple val(meta), path("${meta.id}.bam"), path("${meta.id}.bam.bai"), emit: bam_bai
 
     script:
+    def gpu_id = (task.index - 1) % (params.num_gpus as int)
+    def env_override = "export CUDA_VISIBLE_DEVICES=${gpu_id}; export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
     def rg = "@RG\\tID:${meta.id}\\tSM:${meta.id}\\tPL:ILLUMINA\\tLB:lib1\\tPU:unit1"
     """
+    ${env_override}
     echo "INFO: fq2bam for ${meta.id}"
 
     pbrun fq2bam \\
@@ -125,7 +129,10 @@ process MACS2 {
 
     script:
     def control_args = control_bam.name != 'NO_FILE' ? "-c ${control_bam}" : ""
+    def gpu_id = (task.index - 1) % (params.num_gpus as int)
+    def env_override = "export CUDA_VISIBLE_DEVICES=${gpu_id}; export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
     """
+    ${env_override}
     echo "INFO: MACS2 peak calling for ${treatment_id}"
     
     macs2 callpeak \\
