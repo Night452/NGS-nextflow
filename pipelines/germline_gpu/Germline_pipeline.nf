@@ -269,7 +269,16 @@ workflow {
     // Per-sample parallel steps
     FASTQC          ( read_pairs_ch )
     FQ2BAM          ( read_pairs_ch, ref, ref_fai, ref_dict, ref_bwt, ref_ann, ref_amb, ref_pac, ref_sa )
-    HAPLOTYPE_CALLER( FQ2BAM.out.bam_bai, ref, ref_fai, ref_dict )
+
+    // STRICT EXECUTION BARRIER:
+    // Prevent HAPLOTYPE_CALLER from starting until ALL FQ2BAM tasks are finished.
+    // This prevents cross-process GPU memory concurrency (e.g. sample1 HC running while sample2 FQ2BAM runs),
+    // which would crash systems with <100GB RAM even with maxForks limits.
+    barrier_ch = FQ2BAM.out.bam_bai
+        .toList()
+        .flatMap { it }
+
+    HAPLOTYPE_CALLER( barrier_ch, ref, ref_fai, ref_dict )
 
     // Wait for ALL GVCFs before joint genotyping
     all_gvcfs_ch = HAPLOTYPE_CALLER.out.gvcf

@@ -66,6 +66,21 @@ if ! [[ "$NUM_GPUS" =~ ^[0-9]+$ ]] || [ "$NUM_GPUS" -lt 1 ]; then
     NUM_GPUS=1
 fi
 
+# Parabricks Auto Mode requires ~50GB of System RAM per concurrent fq2bam process.
+# We must cap NUM_GPUS to physical RAM capacity to prevent OOM crashes on multi-GPU systems.
+if command -v awk &> /dev/null && [ -f /proc/meminfo ]; then
+    TOTAL_RAM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    TOTAL_RAM_GB=$(( TOTAL_RAM_KB / 1024 / 1024 ))
+    ALLOWED_GPUS=$(( TOTAL_RAM_GB / 50 ))
+    [ "$ALLOWED_GPUS" -lt 1 ] && ALLOWED_GPUS=1
+    
+    if [ "$NUM_GPUS" -gt "$ALLOWED_GPUS" ]; then
+        echo "WARNING: System RAM (${TOTAL_RAM_GB}GB) is insufficient to run ${NUM_GPUS} concurrent Parabricks tasks."
+        echo "Capping concurrent GPUs to ${ALLOWED_GPUS} to prevent System OOM crashes."
+        NUM_GPUS=$ALLOWED_GPUS
+    fi
+fi
+
 mkdir -p "$RESULTS_DIR/$COHORT_NAME"
 
 APP_ROOT="$(cd "$PROJECT_DIR/../.." && pwd)"
