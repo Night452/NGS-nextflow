@@ -94,8 +94,10 @@ process FQ2BAM {
     tuple val(meta), path("${meta.id}.bam"), path("${meta.id}.bam.bai"), emit: bam_bai
 
     script:
+    def env_override = task.attempt > 1 ? "export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64" : ""
     def rg = "@RG\\tID:${meta.id}\\tSM:${meta.id}\\tPL:ILLUMINA\\tLB:lib1\\tPU:unit1"
     """
+    ${env_override}
     echo "INFO: fq2bam for ${meta.id}"
 
     pbrun fq2bam \\

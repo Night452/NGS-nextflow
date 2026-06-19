@@ -70,8 +70,10 @@ process FQ2BAM {
           path("${sample_id}.bam.bai"), emit: bam_bai
 
     script:
+    def env_override = task.attempt > 1 ? "export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64" : ""
     def rg = "@RG\\tID:${sample_id}\\tSM:${sample_id}\\tPL:ILLUMINA\\tLB:lib1\\tPU:unit1"
     """
+    ${env_override}
     echo "INFO: fq2bam for ${sample_id}"
 
     pbrun fq2bam \\
@@ -104,7 +106,9 @@ process HAPLOTYPE_CALLER {
     tuple val(sample_id), path("${sample_id}.g.vcf"), emit: gvcf
 
     script:
+    def env_override = task.attempt > 1 ? "export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64" : ""
     """
+    ${env_override}
     echo "INFO: HaplotypeCaller for ${sample_id}"
 
     pbrun haplotypecaller \\
@@ -139,7 +143,9 @@ process GENOTYPE_GVCFS {
         ? gvcfs.collect { "--in-gvcf ${it}" }
         : [ "--in-gvcf ${gvcfs}" ]
     ).join(" \\\n        ")
+    def env_override = task.attempt > 1 ? "export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64" : ""
     """
+    ${env_override}
     echo "INFO: GenotypeGVCFs — joint genotyping"
 
     pbrun genotypegvcf \\

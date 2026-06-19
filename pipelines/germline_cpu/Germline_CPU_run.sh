@@ -192,6 +192,10 @@ docker run --rm \
     --passvcf_mem "$PASSVCF_MEM" \
     -resume
 
+# Restore ownership of output files from root to the host user
+echo "Restoring file permissions..."
+docker run --rm -v "$RESULTS_DIR":"$RESULTS_DIR" alpine chown -R $(id -u):$(id -g) "$RESULTS_DIR/$COHORT_NAME"
+
 echo ""
 echo "============================================"
 echo " Results"

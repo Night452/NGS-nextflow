@@ -37,6 +37,19 @@ echo " Results   : $RESULTS_DIR/$COHORT_NAME/"
 echo "============================================"
 echo ""
 
+# Pre-flight GPU checks
+if ! command -v nvidia-smi &> /dev/null; then
+    echo "ERROR: nvidia-smi not found. This pipeline requires an NVIDIA GPU."
+    echo "If you do not have an NVIDIA GPU, please use the CPU version of this pipeline."
+    exit 1
+fi
+
+if ! docker info 2>/dev/null | grep -iq "Runtimes.*nvidia"; then
+    echo "ERROR: NVIDIA Container Toolkit is not installed or configured in Docker."
+    echo "Please install 'nvidia-container-toolkit' so Docker can access your GPU."
+    exit 1
+fi
+
 mkdir -p "$RESULTS_DIR/$COHORT_NAME"
 
 APP_ROOT="$(cd "$PROJECT_DIR/../.." && pwd)"
@@ -125,6 +138,10 @@ docker run --rm \
     --passvcf_mem "$PASSVCF_MEM" \
     ${LOW_MEMORY:+"--low_memory"} \
     -resume
+
+# Restore ownership of output files from root to the host user
+echo "Restoring file permissions..."
+docker run --rm -v "$RESULTS_DIR":"$RESULTS_DIR" alpine chown -R $(id -u):$(id -g) "$RESULTS_DIR/$COHORT_NAME"
 
 echo ""
 echo "============================================"
