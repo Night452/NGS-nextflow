@@ -76,6 +76,7 @@ process FQ2BAM {
     publishDir "${params.outdir}/bam", mode: 'copy'
     container params.parabricks_image
     accelerator 1, type: 'nvidia.com/gpu'
+    maxForks 1
     errorStrategy 'retry'
     maxRetries 1
 
