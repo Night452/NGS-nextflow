@@ -50,7 +50,6 @@ process FQ2BAM {
     publishDir "${params.outdir}/bam", mode: 'copy'
     container params.parabricks_image
     accelerator 1, type: 'nvidia.com/gpu'
-    maxForks 1
     errorStrategy 'retry'
     maxRetries 1
 
@@ -94,7 +93,6 @@ process HAPLOTYPE_CALLER {
     publishDir "${params.outdir}/gvcf", mode: 'copy'
     container params.parabricks_image
     accelerator 1, type: 'nvidia.com/gpu'
-    maxForks 1
     errorStrategy 'retry'
     maxRetries 1
 
