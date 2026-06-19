@@ -58,6 +58,12 @@ if [ -n "$VRAM_MB" ] && [ "$VRAM_MB" -lt 16000 ]; then
     export LOW_MEMORY="1"
 fi
 
+# Auto-detect total host GPUs for accurate Nextflow scheduling
+NUM_GPUS=$(nvidia-smi -L | wc -l)
+if [ -z "$NUM_GPUS" ] || [ "$NUM_GPUS" -lt 1 ]; then
+    NUM_GPUS=1
+fi
+
 mkdir -p "$RESULTS_DIR/$COHORT_NAME"
 
 APP_ROOT="$(cd "$PROJECT_DIR/../.." && pwd)"
@@ -145,6 +151,7 @@ docker run --rm \
     --varfilt_mem "$VARFILT_MEM" \
     --passvcf_cpus "$PASSVCF_CPUS" \
     --passvcf_mem "$PASSVCF_MEM" \
+    --num_gpus "$NUM_GPUS" \
     ${LOW_MEMORY:+"--low_memory"} \
     -resume
 

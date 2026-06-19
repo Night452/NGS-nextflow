@@ -15,9 +15,9 @@ params.samplesheet      = null
 params.reference        = null
 params.outdir           = null
 params.parabricks_image = "nvcr.io/nvidia/clara/clara-parabricks:4.7.0-1"
-params.macs2_image      = "biocontainers/macs2:v2.2.7.1_cv1"
-params.fastp_image      = "biocontainers/fastp:v0.20.1_cv1"
+params.macs2_image      = "quay.io/biocontainers/macs2:2.2.9.1--py310h1425a21_0"
 params.low_memory       = false
+params.num_gpus         = 1
 
 // ── Process 1: FastQC ─────────────────────────────────────────────────────────
 process FASTQC {
@@ -76,6 +76,7 @@ process FQ2BAM {
     publishDir "${params.outdir}/bam", mode: 'copy'
     container params.parabricks_image
     accelerator 1, type: 'nvidia.com/gpu'
+    maxForks params.num_gpus
     errorStrategy 'retry'
     maxRetries 1
 
@@ -94,7 +95,8 @@ process FQ2BAM {
     tuple val(meta), path("${meta.id}.bam"), path("${meta.id}.bam.bai"), emit: bam_bai
 
     script:
-    def env_override = task.attempt > 1 ? "export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64" : ""
+    def gpu_id = (task.index - 1) % (params.num_gpus as int)
+    def env_override = "export CUDA_VISIBLE_DEVICES=${gpu_id}; export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
     def rg = "@RG\\tID:${meta.id}\\tSM:${meta.id}\\tPL:ILLUMINA\\tLB:lib1\\tPU:unit1"
     """
     ${env_override}

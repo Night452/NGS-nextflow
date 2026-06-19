@@ -58,6 +58,12 @@ if [ -n "$VRAM_MB" ] && [ "$VRAM_MB" -lt 16000 ]; then
     export LOW_MEMORY="1"
 fi
 
+# Auto-detect total host GPUs for accurate Nextflow scheduling
+NUM_GPUS=$(nvidia-smi -L | wc -l)
+if [ -z "$NUM_GPUS" ] || [ "$NUM_GPUS" -lt 1 ]; then
+    NUM_GPUS=1
+fi
+
 mkdir -p "$RESULTS_DIR/$PROJECT_NAME"
 
 cd "$PROJECT_DIR"
@@ -139,6 +145,7 @@ docker run --rm \
     --fq2bam_mem "$FQ2BAM_MEM" \
     --macs2_cpus "$MACS2_CPUS" \
     --macs2_mem "$MACS2_MEM" \
+    --num_gpus "$NUM_GPUS" \
     ${LOW_MEMORY:+"--low_memory"} \
     -resume
 

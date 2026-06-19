@@ -19,6 +19,7 @@ params.reference        = null
 params.outdir           = null
 params.parabricks_image = "nvcr.io/nvidia/clara/clara-parabricks:4.7.0-1"
 params.low_memory       = false
+params.num_gpus         = 1
 
 // ── Process 1: FastQC ─────────────────────────────────────────────────────────
 process FASTQC {
@@ -50,6 +51,7 @@ process FQ2BAM {
     publishDir "${params.outdir}/bam", mode: 'copy'
     container params.parabricks_image
     accelerator 1, type: 'nvidia.com/gpu'
+    maxForks params.num_gpus
     errorStrategy 'retry'
     maxRetries 1
 
@@ -70,7 +72,8 @@ process FQ2BAM {
           path("${sample_id}.bam.bai"), emit: bam_bai
 
     script:
-    def env_override = task.attempt > 1 ? "export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64" : ""
+    def gpu_id = (task.index - 1) % (params.num_gpus as int)
+    def env_override = "export CUDA_VISIBLE_DEVICES=${gpu_id}; export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
     def rg = "@RG\\tID:${sample_id}\\tSM:${sample_id}\\tPL:ILLUMINA\\tLB:lib1\\tPU:unit1"
     """
     ${env_override}
@@ -93,6 +96,7 @@ process HAPLOTYPE_CALLER {
     publishDir "${params.outdir}/gvcf", mode: 'copy'
     container params.parabricks_image
     accelerator 1, type: 'nvidia.com/gpu'
+    maxForks params.num_gpus
     errorStrategy 'retry'
     maxRetries 1
 
@@ -106,7 +110,8 @@ process HAPLOTYPE_CALLER {
     tuple val(sample_id), path("${sample_id}.g.vcf"), emit: gvcf
 
     script:
-    def env_override = task.attempt > 1 ? "export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64" : ""
+    def gpu_id = (task.index - 1) % (params.num_gpus as int)
+    def env_override = "export CUDA_VISIBLE_DEVICES=${gpu_id}; export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
     """
     ${env_override}
     echo "INFO: HaplotypeCaller for ${sample_id}"
