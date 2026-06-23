@@ -1,9 +1,9 @@
 #!/usr/bin/env nextflow
 
 /*
- * ChIP-seq Pipeline — NVIDIA Parabricks (GPU-accelerated) + MACS2
+ * ChIP-seq Pipeline — CPU-based Alignment + MACS2
  * Supports single-sample and matched control (Input) peak calling
- * Steps: FastQC → fastp (trimming) → fq2bam (GPU) → MACS2 (CPU)
+ * Steps: FastQC → fastp (trimming) → bwa → samtools sort → mark duplicates → MACS2 (CPU)
  */
 
 nextflow.enable.dsl = 2
@@ -14,11 +14,10 @@ params.reads            = null
 params.samplesheet      = null
 params.reference        = null
 params.outdir           = null
-params.parabricks_image = "nvcr.io/nvidia/clara/clara-parabricks:4.7.0-1"
 params.macs2_image      = "quay.io/biocontainers/macs2:2.2.7.1--py38h4a8c8d9_3"
 params.fastp_image      = "quay.io/biocontainers/fastp:0.23.4--h5f740d0_0"
-params.low_memory       = false
-params.num_gpus         = 1
+params.bwa_image        = "biocontainers/bwa:v0.7.17_cv1"
+params.gatk_image       = "broadinstitute/gatk:4.6.2.0"
 
 // ── Process 1: FastQC ─────────────────────────────────────────────────────────
 process FASTQC {
@@ -38,8 +37,8 @@ process FASTQC {
     script:
     """
     echo "INFO: Running FastQC for ${meta.id}"
-    fastqc ${reads[0]} ${reads[1]} \\
-        --threads ${task.cpus} \\
+    fastqc ${reads[0]} ${reads[1]} \
+        --threads ${task.cpus} \
         --outdir .
     """
 }
@@ -62,22 +61,20 @@ process FASTP {
     script:
     """
     echo "INFO: Running fastp for ${meta.id}"
-    fastp \\
-        -i ${reads[0]} -I ${reads[1]} \\
-        -o ${meta.id}_trimmed_R1.fastq.gz -O ${meta.id}_trimmed_R2.fastq.gz \\
-        --thread ${task.cpus} \\
-        --json ${meta.id}_fastp.json \\
+    fastp \
+        -i ${reads[0]} -I ${reads[1]} \
+        -o ${meta.id}_trimmed_R1.fastq.gz -O ${meta.id}_trimmed_R2.fastq.gz \
+        --thread ${task.cpus} \
+        --json ${meta.id}_fastp.json \
         --html ${meta.id}_fastp.html
     """
 }
 
-// ── Process 3: fq2bam (GPU) ───────────────────────────────────────────────────
-process FQ2BAM {
+// ── Process 3: BWA Alignment ──────────────────────────────────────────────────
+process BWA_ALIGN {
     tag "${meta.id}"
     publishDir "${params.outdir}/bam", mode: 'copy'
-    container params.parabricks_image
-    accelerator 1, type: 'nvidia.com/gpu'
-    maxForks (params.num_gpus as int)
+    container params.bwa_image
     errorStrategy 'retry'
     maxRetries 1
 
@@ -93,27 +90,113 @@ process FQ2BAM {
     path ref_sa
 
     output:
-    tuple val(meta), path("${meta.id}.bam"), path("${meta.id}.bam.bai"), emit: bam_bai
+    tuple val(meta), path("${meta.id}.sam"), emit: sam
 
     script:
-    def env_override = "export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
     def rg = "@RG\\tID:${meta.id}\\tSM:${meta.id}\\tPL:ILLUMINA\\tLB:lib1\\tPU:unit1"
+
     """
-    ${env_override}
-    echo "INFO: fq2bam for ${meta.id}"
+    echo "INFO: BWA alignment for ${meta.id}"
 
-    pbrun fq2bam \\
-        --ref ${reference} \\
-        --in-fq ${r1} ${r2} "${rg}" \\
-        --out-bam ${meta.id}.bam \\
-        --num-gpus 1 \\
-        ${params.low_memory ? '--low-memory' : ''}
+    bwa mem \
+        -t ${task.cpus} \
+        -R '${rg}' \
+        ${reference} \
+        ${r1} \
+        ${r2} \
+        > ${meta.id}.sam
 
-    [ -s "${meta.id}.bam" ] || { echo "ERROR: empty BAM for ${meta.id}"; exit 1; }
+    [ -s "${meta.id}.sam" ] || { echo "ERROR: empty SAM"; exit 1; }
     """
 }
 
-// ── Process 4: MACS2 ──────────────────────────────────────────────────────────
+// ── Process 4: Sort BAM ───────────────────────────────────────────────────────
+process SORT_BAM {
+    tag "${meta.id}"
+    publishDir "${params.outdir}/bam", mode: 'copy'
+    container params.gatk_image
+    errorStrategy 'retry'
+    maxRetries 1
+
+    input:
+    tuple val(meta), path(sam)
+
+    output:
+    tuple val(meta), path("${meta.id}.sorted.bam"), emit: sorted_bam
+
+    script:
+    def mem_per_thread = Math.max( (task.memory.toMega() * 0.8 / task.cpus).intValue(), 500 )
+    """
+    echo "INFO: Sorting BAM for ${meta.id}"
+
+    samtools sort \
+        -@ ${task.cpus} \
+        -m ${mem_per_thread}M \
+        -T /tmp/${meta.id}_tmp \
+        -o ${meta.id}.sorted.bam \
+        ${sam}
+
+    [ -s "${meta.id}.sorted.bam" ] || { echo "ERROR: empty sorted BAM"; exit 1; }
+    rm -rf /tmp/${meta.id}_tmp*
+    """
+}
+
+// ── Process 5: Mark Duplicates ────────────────────────────────────────────────
+process MARK_DUPLICATES {
+    tag "${meta.id}"
+    publishDir "${params.outdir}/bam", mode: 'copy'
+    container params.gatk_image
+    errorStrategy 'retry'
+    maxRetries 1
+
+    input:
+    tuple val(meta), path(sorted_bam)
+
+    output:
+    tuple val(meta), path("${meta.id}.bam"), path("${meta.id}.metrics.txt"), emit: bam_metrics
+
+    script:
+    """
+    echo "INFO: MarkDuplicates for ${meta.id}"
+
+    gatk MarkDuplicates \
+        -I ${sorted_bam} \
+        -O ${meta.id}.bam \
+        -M ${meta.id}.metrics.txt \
+        --TMP_DIR /tmp
+
+    [ -s "${meta.id}.bam" ] || { echo "ERROR: empty BAM"; exit 1; }
+    rm -rf /tmp/*
+    """
+}
+
+// ── Process 6: Index BAM ──────────────────────────────────────────────────────
+process INDEX_BAM {
+    tag "${meta.id}"
+    publishDir "${params.outdir}/bam", mode: 'copy'
+    container params.gatk_image
+    errorStrategy 'retry'
+    maxRetries 1
+
+    input:
+    tuple val(meta), path(bam), path(metrics)
+
+    output:
+    tuple val(meta), path("${meta.id}.bam"), path("${meta.id}.bam.bai"), emit: bam_bai
+
+    script:
+    """
+    echo "INFO: Indexing BAM for ${meta.id}"
+
+    samtools index \
+        -@ ${task.cpus} \
+        ${bam}
+
+    [ -s "${meta.id}.bam.bai" ] || { echo "ERROR: BAM index missing"; exit 1; }
+    """
+}
+
+// ── Process 7: MACS2 ──────────────────────────────────────────────────────────
 process MACS2 {
     tag "${treatment_id}"
     publishDir "${params.outdir}/macs2", mode: 'copy'
@@ -129,18 +212,16 @@ process MACS2 {
 
     script:
     def control_args = control_bam.name != 'NO_CONTROL_BAM' ? "-c ${control_bam}" : ""
-    def env_override = "export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
     """
-    ${env_override}
     echo "INFO: MACS2 peak calling for ${treatment_id}"
     
-    macs2 callpeak \\
-        -t ${treatment_bam} \\
-        ${control_args} \\
-        -f BAMPE \\
-        -g hs \\
-        -n ${treatment_id}_macs2 \\
-        -q 0.05 \\
+    macs2 callpeak \
+        -t ${treatment_bam} \
+        ${control_args} \
+        -f BAMPE \
+        -g hs \
+        -n ${treatment_id}_macs2 \
+        -q 0.05 \
         --outdir . || { echo "WARNING: MACS2 failed, likely due to zero mapped reads in test dataset."; touch ${treatment_id}_macs2_peaks.xls; }
     """
 }
@@ -157,7 +238,7 @@ workflow {
 
     def ref      = file(params.reference)
     def ref_fai  = file("${params.reference}.fai")
-    def ref_base = params.reference.toString().replaceAll(/\.fasta$/, "").replaceAll(/\.fa$/, "")
+    def ref_base = params.reference.toString().replaceAll(/\\.fasta\$/, "").replaceAll(/\\.fa\$/, "")
 
     def ref_dict = file("${ref_base}.dict")
     def ref_bwt  = file("${ref_base}.bwt").exists() ? file("${ref_base}.bwt") : file("${params.reference}.bwt")
@@ -168,7 +249,7 @@ workflow {
 
     log.info """
     ============================================
-     CHIP-SEQ GPU PIPELINE
+     CHIP-SEQ CPU PIPELINE
     ============================================
      reads       : ${params.reads ?: 'N/A (using samplesheet)'}
      samplesheet : ${params.samplesheet ?: 'N/A (using fastq dir)'}
@@ -196,33 +277,31 @@ workflow {
             .set { read_pairs_ch }
     }
 
-    // Step 1 & 2: QC and Trimming
+    // QC and Trimming
     FASTQC(read_pairs_ch)
     FASTP(read_pairs_ch)
 
-    // Step 3: Alignment
-    FQ2BAM(FASTP.out.trimmed_reads, ref, ref_fai, ref_dict, ref_bwt, ref_ann, ref_amb, ref_pac, ref_sa)
+    // CPU Alignment Pipeline
+    BWA_ALIGN(FASTP.out.trimmed_reads, ref, ref_fai, ref_dict, ref_bwt, ref_ann, ref_amb, ref_pac, ref_sa)
+    SORT_BAM(BWA_ALIGN.out.sam)
+    MARK_DUPLICATES(SORT_BAM.out.sorted_bam)
+    INDEX_BAM(MARK_DUPLICATES.out.bam_metrics)
 
-    // Step 4: MACS2 Data prep
-    // Extract a channel mapping sample ID to BAM file
-    def bam_by_id = FQ2BAM.out.bam_bai.map { meta, bam, bai -> [meta.id, bam] }
+    // MACS2 Data prep
+    def bam_by_id = INDEX_BAM.out.bam_bai.map { meta, bam, bai -> [meta.id, bam] }
 
-    // Isolate treatments with no control
-    def treatments_without_control = FQ2BAM.out.bam_bai
+    def treatments_without_control = INDEX_BAM.out.bam_bai
         .filter { meta, bam, bai -> meta.control == '' }
         .map { meta, bam, bai -> 
-            // Dummy file for Nextflow to handle optional inputs cleanly
             def dummy_file = file("${params.outdir}/NO_CONTROL_BAM")
             dummy_file.text = ""
             [meta.id, bam, dummy_file] 
         }
 
-    // Isolate treatments WITH a control, key by control ID for joining
-    def treatments_with_control = FQ2BAM.out.bam_bai
+    def treatments_with_control = INDEX_BAM.out.bam_bai
         .filter { meta, bam, bai -> meta.control != '' }
         .map { meta, bam, bai -> [meta.control, meta.id, bam] }
 
-    // Join to get the control BAM
     def matched_controls = treatments_with_control.cross(bam_by_id) { it[0] }
         .map { treat_tuple, ctrl_tuple -> 
             def t_id  = treat_tuple[1]
@@ -231,9 +310,8 @@ workflow {
             [t_id, t_bam, c_bam]
         }
 
-    // Combine both streams
     def macs2_input = treatments_without_control.mix(matched_controls)
 
-    // Step 5: Peak Calling
+    // Peak Calling
     MACS2(macs2_input)
 }

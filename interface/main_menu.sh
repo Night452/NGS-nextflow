@@ -119,16 +119,18 @@ while true; do
     fi
     echo "=========================================================="
     echo "Please choose the pipeline you wish to run:"
-    echo "  1) CPU Pipeline (BWA, GATK 4)"
-    echo "  2) GPU Pipeline (NVIDIA Parabricks)"
-    echo "  3) Exit"
+    echo "  1) Germline CPU Pipeline (BWA, GATK 4)"
+    echo "  2) Germline GPU Pipeline (NVIDIA Parabricks)"
+    echo "  3) ChIP-seq GPU Pipeline (NVIDIA Parabricks, MACS2)"
+    echo "  4) ChIP-seq CPU Pipeline (BWA, MACS2)"
+    echo "  5) Exit"
     echo "=========================================================="
-    read -p "Selection (1/2/3): " PIPELINE_CHOICE
+    read -p "Selection (1/2/3/4/5): " PIPELINE_CHOICE
 
-    if [[ "$PIPELINE_CHOICE" == "3" ]]; then
+    if [[ "$PIPELINE_CHOICE" == "5" ]]; then
         echo "Goodbye!"
         exit 0
-    elif [[ "$PIPELINE_CHOICE" != "1" && "$PIPELINE_CHOICE" != "2" ]]; then
+    elif [[ ! "$PIPELINE_CHOICE" =~ ^[1-4]$ ]]; then
         echo "Invalid selection."
         sleep 1
         continue
@@ -205,9 +207,13 @@ while true; do
     echo " RUN SUMMARY"
     echo "=========================================================="
     if [[ "$PIPELINE_CHOICE" == "1" ]]; then
-        echo " Pipeline   : CPU"
-    else
-        echo " Pipeline   : GPU (Parabricks)"
+        echo " Pipeline   : Germline CPU"
+    elif [[ "$PIPELINE_CHOICE" == "2" ]]; then
+        echo " Pipeline   : Germline GPU (Parabricks)"
+    elif [[ "$PIPELINE_CHOICE" == "3" ]]; then
+        echo " Pipeline   : ChIP-seq GPU (Parabricks)"
+    elif [[ "$PIPELINE_CHOICE" == "4" ]]; then
+        echo " Pipeline   : ChIP-seq CPU"
     fi
     echo " Cohort     : $COHORT_NAME"
     echo " Reference  : $REF_DIR"
@@ -222,9 +228,15 @@ while true; do
     if [[ "$PIPELINE_CHOICE" == "1" ]]; then
         REF_DIR="$REF_DIR" REF_NAME="$REF_NAME" RESULTS_DIR="$RESULTS_DIR" \
         bash "$APP_ROOT/pipelines/germline_cpu/Germline_CPU_run.sh" "$COHORT_NAME" "$FASTQ_PATH"
-    else
+    elif [[ "$PIPELINE_CHOICE" == "2" ]]; then
         REF_DIR="$REF_DIR" REF_NAME="$REF_NAME" RESULTS_DIR="$RESULTS_DIR" \
         bash "$APP_ROOT/pipelines/germline_gpu/Germline_pipeline_run.sh" "$COHORT_NAME" "$FASTQ_PATH"
+    elif [[ "$PIPELINE_CHOICE" == "3" ]]; then
+        REF_DIR="$REF_DIR" REF_NAME="$REF_NAME" RESULTS_DIR="$RESULTS_DIR" \
+        bash "$APP_ROOT/pipelines/chipseq/CHIPseq_GPU_run.sh" "$COHORT_NAME" "$FASTQ_PATH"
+    elif [[ "$PIPELINE_CHOICE" == "4" ]]; then
+        REF_DIR="$REF_DIR" REF_NAME="$REF_NAME" RESULTS_DIR="$RESULTS_DIR" \
+        bash "$APP_ROOT/pipelines/chipseq_cpu/CHIPseq_CPU_run.sh" "$COHORT_NAME" "$FASTQ_PATH"
     fi
     
     EXIT_CODE=$?

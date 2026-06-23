@@ -1,9 +1,13 @@
 # Nextflow Genomics Suite
 
 **Project made in BRIC-CDFD under the guidance of Dr. Akash Ranjan in the Laboratory of Computational & Functional Genomics.**
-This project provides containerized, Nextflow-based bioinformatics pipelines for **Germline Variant Calling** and **ChIP-seq Peak Calling**. It features a modern, tabbed PySide6 Desktop GUI for easy configuration, resource allocation, and execution.
+This repository contains an end-to-end framework for Next-Generation Sequencing data analysis, featuring both **Germline Variant Calling** and **ChIP-seq Peak Calling** pipelines. It provides **GPU-accelerated** options (via NVIDIA Parabricks) and equivalent **CPU-based** fallbacks (via BWA, GATK4, MACS2). 
 
-The pipelines support both CPU-only execution and GPU-accelerated execution using NVIDIA Clara Parabricks for blazing-fast performance. All dependencies are containerized via Docker, ensuring reproducibility.
+Pipelines:
+1. **Germline GPU**: FastQC → fastp → Parabricks fq2bam → Parabricks DeepVariant (or HaplotypeCaller) -> Joint Genotyping -> Variant Filtration.
+2. **Germline CPU**: FastQC → fastp → BWA mem → GATK MarkDuplicates → HaplotypeCaller -> CombineGVCFs -> Joint Genotyping -> Variant Filtration.
+3. **ChIP-seq GPU**: FastQC → fastp → Parabricks fq2bam → MACS2.
+4. **ChIP-seq CPU**: FastQC → fastp → BWA mem → GATK MarkDuplicates → MACS2.
 
 ---
 
@@ -12,15 +16,49 @@ The pipelines support both CPU-only execution and GPU-accelerated execution usin
 The primary way to interact with the pipelines is through the modern PySide6 desktop application (`interface/gui.py`). 
 
 ### Features
-- **Independent Tabs**: Each pipeline (Germline CPU, Germline GPU, ChIP-seq GPU) has a dedicated, isolated tab.
-- **Resource Monitor**: A detached pop-up window to track live CPU/RAM usage and configure Nextflow CPU/Memory allocations.
-- **Low Memory Mode**: A built-in toggle for NVIDIA Parabricks pipelines to support systems with `<12GB VRAM` without crashing.
+- **Antigravity Fluid UI**: A custom-engineered, premium PySide6 graphics engine that renders an interactive, 2000-step mesh gradient ("aurora borealis") animation that reacts to your mouse in real-time with an iPhone-style frosted glass effect.
+- **Independent Tabs**: Each pipeline (Germline CPU, Germline GPU, ChIP-seq GPU, ChIP-seq CPU) has a dedicated, isolated tab.
+- **Auto-Open Results**: Upon successful pipeline completion, the GUI prompts you to automatically pop open the native file explorer to exactly where your BAMs, VCFs, and QC reports were saved.
+- **Descriptive Error Popups**: The GUI actively parses the Nextflow backend logs. If a failure occurs (e.g., Docker disconnected, out of memory, no space left, missing indices), it presents a clear, actionable popup window explaining exactly how to fix the issue instead of a raw exit code.
+- **Resource Monitor & Clamping**: A detached pop-up window tracks live CPU/RAM usage. All underlying shell scripts dynamically "clamp" max thread and RAM usage based on your actual system hardware to prevent Out of Memory (OOM) crashes across different devices.
+- **Low Memory Mode**: A built-in toggle for NVIDIA Parabricks pipelines to support GPUs with `<12GB VRAM`.
 - **Pre-built Indexing**: 1-click BWA reference index building directly from the GUI.
 
 To run the GUI:
 ```bash
 python interface/gui.py
 ```
+
+---
+
+## 📂 Input Requirements
+
+To successfully run any of the pipelines, you must provide the following inputs in specific formats:
+
+### 1. FASTQ Files
+- **Format**: Reads must be **paired-end** and **gzipped** (`.fastq.gz`).
+- **Naming Convention**: Files must be named strictly matching `*_R1.fastq.gz` and `*_R2.fastq.gz`, where the prefix before `_R1` or `_R2` exactly matches the sample's name.
+  - *Correct*: `sampleA_R1.fastq.gz`, `sampleA_R2.fastq.gz`
+  - *Incorrect*: `sampleA_1.fq.gz`, `sampleA_R1_001.fastq.gz` (rename these to the required format).
+- **Directory**: Place all your raw reads in a single directory to be selected in the GUI or CLI.
+
+### 2. Reference Genome
+- **Format**: You must provide a reference genome in FASTA format (`.fa` or `.fasta`).
+- **Indices**: The pipelines require multiple reference indices (e.g., BWA `.bwt`, Samtools `.fai`, GATK `.dict`). 
+  - If these are missing, the pipeline will automatically attempt to build them using Docker before running.
+  - **Tip**: Building indices can take a long time. It is highly recommended to use the "Build Reference Index" button in the GUI once per new reference genome.
+
+### 3. Samplesheet (ChIP-seq Only)
+- **Format**: A comma-separated values (`.csv`) file named `samplesheet.csv`.
+- **Purpose**: Required only if you want to map treatment samples against specific control/Input samples for `MACS2` peak calling.
+- **Structure**: Must contain a header with exactly `sample,fastq_1,fastq_2,control`.
+  - Example:
+    ```csv
+    sample,fastq_1,fastq_2,control
+    treat_1,treat_1_R1.fastq.gz,treat_1_R2.fastq.gz,input_1
+    input_1,input_1_R1.fastq.gz,input_1_R2.fastq.gz,
+    ```
+- **Note**: If no samplesheet is provided, the ChIP-seq pipeline will default to running peak calling without a matched control.
 
 ---
 

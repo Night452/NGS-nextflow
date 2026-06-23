@@ -289,9 +289,16 @@ process GENOTYPE_GVCFS {
 
     gatk \
         --java-options "-Xmx${java_mem}g" \
-        GenotypeGVCFs \
+        CombineGVCFs \
         -R ${reference} \
         ${gvcf_args} \
+        -O combined.g.vcf.gz
+
+    gatk \
+        --java-options "-Xmx${java_mem}g" \
+        GenotypeGVCFs \
+        -R ${reference} \
+        -V combined.g.vcf.gz \
         -O ${params.cohort_name}.vcf.gz
     
     gatk IndexFeatureFile \

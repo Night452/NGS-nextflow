@@ -3,9 +3,11 @@ import sys
 import psutil
 import subprocess
 from pathlib import Path
+import re
+import math
 
-from PySide6.QtCore import Qt, QProcess, QProcessEnvironment, QTimer, QThread, Signal
-from PySide6.QtGui import QFont, QTextCursor, QIcon, QPainter, QColor
+from PySide6.QtCore import Qt, QProcess, QProcessEnvironment, QTimer, QThread, Signal, QPoint
+from PySide6.QtGui import QFont, QTextCursor, QIcon, QPainter, QColor, QRadialGradient, QPainterPath
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QFileDialog, QTextEdit, QGroupBox, 
@@ -18,18 +20,18 @@ RESULTS_DIR = APP_ROOT / "results"
 
 MODERN_QSS = """
 QMainWindow {
-    background-color: #000000;
+    background-color: #0a0a0c;
 }
 QWidget {
-    background-color: #121212;
+    background-color: transparent;
     color: #b3b3b3;
     font-family: 'Circular Std', 'Inter', 'Proxima Nova', 'Segoe UI', Arial, sans-serif;
     font-size: 14px;
 }
 QTabWidget::pane {
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 20);
     border-radius: 12px;
-    background: #181818;
+    background: rgba(255, 255, 255, 10);
 }
 QTabBar::tab {
     background: transparent;
@@ -41,20 +43,21 @@ QTabBar::tab {
     font-weight: bold;
 }
 QTabBar::tab:selected {
-    background: #282828;
+    background: rgba(255, 255, 255, 20);
     color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 15);
 }
 QTabBar::tab:hover:!selected {
-    background: #1a1a1a;
+    background: rgba(255, 255, 255, 10);
     color: #ffffff;
 }
 QGroupBox {
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 15);
     border-radius: 12px;
     margin-top: 18px;
     padding-top: 15px;
     font-weight: bold;
-    background: #181818;
+    background: rgba(255, 255, 255, 5);
 }
 QGroupBox::title {
     subcontrol-origin: margin;
@@ -68,36 +71,38 @@ QLabel {
     background-color: transparent;
 }
 QLineEdit {
-    background-color: #282828;
-    border: 1px solid transparent;
+    background-color: rgba(255, 255, 255, 10);
+    border: 1px solid rgba(255, 255, 255, 20);
     border-radius: 20px;
     padding: 10px 15px;
     color: #ffffff;
 }
 QLineEdit:hover {
-    background-color: #333333;
+    background-color: rgba(255, 255, 255, 20);
 }
 QLineEdit:focus {
-    background-color: #333333;
-    border: 1px solid #7b68ee;
+    background-color: rgba(255, 255, 255, 20);
+    border: 1px solid #00bfff;
 }
 QPushButton {
-    background-color: #282828;
-    border: none;
+    background-color: rgba(255, 255, 255, 15);
+    border: 1px solid rgba(255, 255, 255, 20);
     border-radius: 20px;
     padding: 12px 24px;
     color: #ffffff;
     font-weight: bold;
 }
 QPushButton:hover {
-    background-color: #3e3e3e;
+    background-color: rgba(255, 255, 255, 30);
+    border: 1px solid rgba(255, 255, 255, 40);
 }
 QPushButton:pressed {
-    background-color: #1a1a1a;
+    background-color: rgba(255, 255, 255, 5);
 }
 QPushButton:disabled {
-    background: #121212;
+    background: rgba(255, 255, 255, 5);
     color: #555555;
+    border: 1px solid rgba(255, 255, 255, 5);
 }
 QCheckBox {
     background-color: transparent;
@@ -585,6 +590,11 @@ QPushButton:disabled {
             sample = self.parent_gui.to_linux_path(self.input_sample.text().strip()) if self.input_sample.text().strip() else ""
             cmd = ["bash", str(script).replace("\\", "/"), name, fastq_dir, sample]
             singularity_num = "3"
+        elif self.pipeline_type == "ChIP-seq CPU":
+            script = APP_ROOT / "pipelines" / "chipseq_cpu" / "CHIPseq_CPU_run.sh"
+            sample = self.parent_gui.to_linux_path(self.input_sample.text().strip()) if self.input_sample.text().strip() else ""
+            cmd = ["bash", str(script).replace("\\", "/"), name, fastq_dir, sample]
+            singularity_num = "4"
 
         if hasattr(self, 'check_singularity') and self.check_singularity.isChecked() and self.check_singularity.isVisible():
             script = APP_ROOT / "run_singularity.sh"
@@ -695,6 +705,15 @@ class NextflowGUI(QMainWindow):
         self.active_stop_btn = None
         self.active_build_btn = None
         
+        self.mouse_pos = QPoint(-1000, -1000)
+        self.target_mouse_pos = QPoint(-1000, -1000)
+        QApplication.instance().installEventFilter(self)
+        
+        self.time_step = 0
+        self.anim_timer = QTimer(self)
+        self.anim_timer.timeout.connect(self.update_animation)
+        self.anim_timer.start(33)  # ~30 FPS
+        
         self.setup_ui()
         QTimer.singleShot(1000, self.check_gpu_visibility)
 
@@ -714,7 +733,7 @@ class NextflowGUI(QMainWindow):
     def setup_ui(self):
         main_widget = QWidget()
         main_widget.setObjectName("main_widget")
-        main_widget.setStyleSheet("#main_widget { border: 1px solid #333333; }")
+        main_widget.setStyleSheet("#main_widget { border: 1px solid rgba(255,255,255,20); }")
         self.setCentralWidget(main_widget)
         
         wrapper_layout = QVBoxLayout(main_widget)
@@ -779,10 +798,12 @@ QPushButton:pressed {
         
         self.tab_germline_cpu = PipelineTab("Germline CPU", self)
         self.tab_germline_gpu = PipelineTab("Germline GPU", self)
+        self.tab_chipseq_cpu = PipelineTab("ChIP-seq CPU", self)
         self.tab_chipseq_gpu = PipelineTab("ChIP-seq GPU", self)
         
         self.tabs.addTab(self.tab_germline_cpu, "Germline CPU")
         self.tabs.addTab(self.tab_germline_gpu, "Germline GPU")
+        self.tabs.addTab(self.tab_chipseq_cpu, "ChIP-seq CPU")
         self.tabs.addTab(self.tab_chipseq_gpu, "ChIP-seq GPU")
         main_layout.addWidget(self.tabs)
 
@@ -805,6 +826,32 @@ QPushButton:pressed {
             self.toggle_console()
         self.console_window.closeEvent = on_console_close
         
+        # Progress Bar Layout
+        prog_layout = QVBoxLayout()
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setFixedHeight(8)
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: none;
+                background-color: #2a2a2a;
+                border-radius: 4px;
+            }
+            QProgressBar::chunk {
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00f2fe, stop:1 #4facfe);
+                border-radius: 4px;
+            }
+        """)
+        
+        self.lbl_status = QLabel("Idle.")
+        self.lbl_status.setStyleSheet("color: #b3b3b3; font-size: 12px; font-style: italic;")
+        
+        prog_layout.addWidget(self.progress_bar)
+        prog_layout.addWidget(self.lbl_status)
+        main_layout.addLayout(prog_layout)
+
         bottom_layout = QHBoxLayout()
         bottom_layout.addStretch()
         size_grip = QSizeGrip(self)
@@ -868,6 +915,7 @@ QPushButton:pressed {
             self.toggle_console()
 
         self.console.clear()
+        self.current_log = ""
         self.append_console(f"Running command: {' '.join(command)}\n")
         self.append_console("-" * 60 + "\n")
 
@@ -890,26 +938,179 @@ QPushButton:pressed {
         if build_btn: build_btn.setEnabled(False)
         stop_btn.setEnabled(True)
 
+        self.progress_bar.setRange(0, 0)
+        self.lbl_status.setText("Initializing Nextflow environment...")
+
         self.process.start(command[0], command[1:])
 
     def handle_stdout(self):
         data = self.process.readAllStandardOutput()
-        self.append_console(bytes(data).decode("utf-8", errors="replace"))
+        text = bytes(data).decode("utf-8", errors="replace")
+        self.current_log += text
+        self.append_console(text)
+        
+        # Parse for tool name
+        for line in text.split('\n'):
+            if ']' in line and '|' in line:
+                match = re.search(r'\]\s+([A-Z0-9_]+)\s*\(', line)
+                if not match:
+                    match = re.search(r'\]\s+([A-Z0-9_]+)\s*\|', line)
+                if match:
+                    tool = match.group(1)
+                    desc_map = {
+                        "FASTQC": "FastQC: Analyzing raw read quality...",
+                        "FASTP": "fastp: Trimming adapters and filtering reads...",
+                        "BWA_ALIGN": "BWA-MEM: Aligning reads to the reference genome...",
+                        "FQ2BAM": "Parabricks fq2bam: GPU-accelerated alignment and sorting...",
+                        "SORT_BAM": "Samtools: Sorting BAM files...",
+                        "MARK_DUPLICATES": "GATK MarkDuplicates: Tagging duplicate reads...",
+                        "INDEX_BAM": "Samtools: Indexing BAM files...",
+                        "MACS2": "MACS2: Calling peaks...",
+                        "HAPLOTYPE_CALLER": "GATK HaplotypeCaller: Calling variants...",
+                        "DEEPVARIANT": "Parabricks DeepVariant: GPU-accelerated variant calling...",
+                        "GENOTYPE_GVCFS": "GATK: Joint Genotyping cohorts...",
+                        "VARIANT_FILTRATION": "GATK: Hard filtering variants...",
+                        "PASS_VCF": "Extracting PASS variants...",
+                        "COMBINE_GVCFS": "GATK CombineGVCFs: Merging variant calls..."
+                    }
+                    if tool in desc_map:
+                        self.lbl_status.setText(desc_map[tool])
 
     def handle_stderr(self):
         data = self.process.readAllStandardError()
-        self.append_console(bytes(data).decode("utf-8", errors="replace"))
+        text = bytes(data).decode("utf-8", errors="replace")
+        self.current_log += text
+        self.append_console(text)
 
     def process_finished(self, exit_code, exit_status):
         self.append_console("-" * 60 + "\n")
         self.append_console(f"Process finished with exit code {exit_code}\n")
         if self.active_run_btn: self.active_run_btn.setEnabled(True)
         if self.active_stop_btn: self.active_stop_btn.setEnabled(False)
+        if self.active_build_btn: self.active_build_btn.setEnabled(True)
+
+        if exit_code != 0:
+            self.progress_bar.setRange(0, 100)
+            self.progress_bar.setValue(0)
+            self.lbl_status.setText("Failed.")
+            
+            log_lower = self.current_log.lower()
+            if "cannot connect to the docker daemon" in log_lower or "docker daemon is not running" in log_lower:
+                title = "Docker Connection Error"
+                msg = "The pipeline cannot connect to the Docker daemon.\n\nSolution: Please ensure Docker Desktop is installed, open, and running in the background before starting the pipeline."
+            elif "no space left on device" in log_lower:
+                title = "Disk Space Error"
+                msg = "Your system has run out of disk space.\n\nSolution: Please clear up storage on your hard drive. Docker images and BAM files require significant free space (at least 50-100GB recommended)."
+            elif "cuda_error_out_of_memory" in log_lower or "parabricks: error" in log_lower or "cuda out of memory" in log_lower:
+                title = "GPU Out of Memory"
+                msg = "The NVIDIA Parabricks GPU pipeline ran out of Video RAM (VRAM).\n\nSolution: Try checking the 'Enable Low Memory Mode' box in the GUI, or switch to the CPU Pipeline tab."
+            elif "exit code 137" in log_lower or "outofmemoryerror" in log_lower or "insufficient resources" in log_lower:
+                title = "System Out of Memory"
+                msg = "The pipeline ran out of System RAM.\n\nSolution: Lower the Memory Limit slider in the Resource Monitor, close background applications, or ensure your system has enough physical RAM."
+            elif "zerodivisionerror" in log_lower or "empty bam" in log_lower or "zero mapped reads" in log_lower:
+                title = "No Mapped Reads Error"
+                msg = "Zero reads successfully mapped to the reference genome.\n\nSolution: Verify that you selected the correct Reference Fasta for your FASTQ dataset (e.g., don't use hg38 for mouse data). Check the FastQC reports for data quality."
+            elif "not found" in log_lower and (".bwt" in log_lower or ".fai" in log_lower or ".dict" in log_lower):
+                title = "Missing Reference Index"
+                msg = "Required reference genome indices were not found.\n\nSolution: Please click the 'Build Reference Index' button in the GUI first before running the pipeline."
+            else:
+                title = "Pipeline Execution Error"
+                msg = f"The pipeline failed with an unknown error (Exit Code: {exit_code}).\n\nSolution: Please read the Terminal log for specific clues or check the Nextflow '.nextflow.log' file."
+            
+            QMessageBox.critical(self, title, msg)
+        else:
+            self.progress_bar.setRange(0, 100)
+            self.progress_bar.setValue(100)
+            self.lbl_status.setText("Complete!")
+            
+            reply = QMessageBox.question(
+                self, 
+                "Success", 
+                "Pipeline execution completed successfully!\nDo you want to open the results folder?",
+                QMessageBox.Yes | QMessageBox.No, 
+                QMessageBox.Yes
+            )
+            
+            if reply == QMessageBox.Yes:
+                res_path = self.input_out_dir.text()
+                if os.path.exists(res_path):
+                    if sys.platform == "win32":
+                        os.startfile(res_path)
+                    elif sys.platform == "darwin":
+                        subprocess.call(["open", res_path])
+                    else:
+                        subprocess.call(["xdg-open", res_path])
 
     def stop_process(self):
         if self.process and self.process.state() == QProcess.Running:
             self.append_console("\nStopping process...\n")
             self.process.kill()
+
+    def eventFilter(self, obj, event):
+        if event.type() == event.Type.MouseMove:
+            self.target_mouse_pos = self.mapFromGlobal(event.globalPosition().toPoint())
+            # self.update() is handled by the animation timer now
+        return super().eventFilter(obj, event)
+
+    def update_animation(self):
+        self.time_step += 0.02
+        
+        # Smoothly interpolate (lag) the mouse position towards the target
+        dx = self.target_mouse_pos.x() - self.mouse_pos.x()
+        dy = self.target_mouse_pos.y() - self.mouse_pos.y()
+        self.mouse_pos.setX(int(self.mouse_pos.x() + dx * 0.08))
+        self.mouse_pos.setY(int(self.mouse_pos.y() + dy * 0.08))
+        
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Solid dark background base
+        painter.fillRect(self.rect(), QColor(5, 5, 8))
+        
+        # We will use CompositionMode_Screen to blend the orbs to create a bright fluid glow
+        painter.setCompositionMode(QPainter.CompositionMode_Screen)
+        
+        w = self.width()
+        h = self.height()
+        
+        def add_smooth_stops(grad, r, g, b, max_alpha, steps=2000):
+            for i in range(steps + 1):
+                pos = i / steps
+                # Optional: use easing, but linear is fine for high step counts
+                alpha = int(max_alpha * (1.0 - pos))
+                grad.setColorAt(pos, QColor(r, g, b, alpha))
+        
+        # Orb 1: Deep Violet (Oscillating)
+        x1 = w * 0.5 + math.sin(self.time_step * 0.7) * (w * 0.3)
+        y1 = h * 0.5 + math.cos(self.time_step * 0.5) * (h * 0.3)
+        grad1 = QRadialGradient(x1, y1, 800)
+        add_smooth_stops(grad1, 138, 43, 226, 30, steps=2000)
+        painter.fillRect(self.rect(), grad1)
+        
+        # Orb 2: Bright Cyan (Oscillating counter-direction)
+        x2 = w * 0.5 + math.cos(self.time_step * 0.6) * (w * 0.4)
+        y2 = h * 0.5 + math.sin(self.time_step * 0.8) * (h * 0.4)
+        grad2 = QRadialGradient(x2, y2, 800)
+        add_smooth_stops(grad2, 0, 191, 255, 20, steps=2000)
+        painter.fillRect(self.rect(), grad2)
+        
+        # Orb 3: Magenta (Slow, central drift)
+        x3 = w * 0.5 + math.sin(self.time_step * 0.3) * (w * 0.2)
+        y3 = h * 0.5 + math.sin(self.time_step * 0.4) * (h * 0.2)
+        grad3 = QRadialGradient(x3, y3, 900)
+        add_smooth_stops(grad3, 255, 0, 128, 15, steps=2000)
+        painter.fillRect(self.rect(), grad3)
+        
+        # Orb 4: Mouse interactive glow (Deep Blue)
+        grad4 = QRadialGradient(self.mouse_pos, 700)
+        add_smooth_stops(grad4, 64, 114, 255, 25, steps=2000)
+        painter.fillRect(self.rect(), grad4)
+        
+        # Reset composition mode to standard for children widgets
+        painter.setCompositionMode(QPainter.CompositionMode_SourceOver)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

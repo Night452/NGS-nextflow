@@ -84,10 +84,42 @@ mkdir -p "$RESULTS_DIR/$COHORT_NAME"
 APP_ROOT="$(cd "$PROJECT_DIR/../.." && pwd)"
 cd "$PROJECT_DIR"
 
+# ── Build reference indexes if missing (BWA + samtools + GATK dict) ───────────
+if [[ "${SKIP_INDEXING:-0}" == "1" ]]; then
+    echo "Skipping index check (Pre-built indexes selected in UI)."
+else
+    DICT_NAME="${REF_NAME}.dict"
+    
+    # Check BWA index
+    NEED_BWA=0
+    for ext in bwt amb ann pac sa; do
+        if [[ ! -f "$REF_DIR/${REF_FASTA}.$ext" && ! -f "$REF_DIR/${REF_NAME}.$ext" ]]; then
+            NEED_BWA=1
+        fi
+    done
+    
+    if [[ "$NEED_BWA" -eq 1 ]]; then
+        echo "BWA indexes missing or incomplete — building now..."
+        docker run --rm -u "$(id -u):$(id -g)" -v "$REF_DIR":"$REF_DIR" -w "$REF_DIR" biocontainers/bwa:v0.7.17_cv1 bwa index "$REF_FASTA"
+    fi
+
+    # Check FAI
+    if [[ ! -f "$REF_DIR/${REF_FASTA}.fai" && ! -f "$REF_DIR/${REF_NAME}.fai" ]]; then
+        echo "FAI index missing — building now..."
+        docker run --rm -u "$(id -u):$(id -g)" -v "$REF_DIR":"$REF_DIR" -w "$REF_DIR" broadinstitute/gatk:4.6.2.0 samtools faidx "$REF_FASTA"
+    fi
+
+    # Check DICT
+    if [[ ! -f "$REF_DIR/$DICT_NAME" ]]; then
+        echo "GATK dict missing — building now..."
+        docker run --rm -u "$(id -u):$(id -g)" -v "$REF_DIR":"$REF_DIR" -w "$REF_DIR" broadinstitute/gatk:4.6.2.0 gatk CreateSequenceDictionary -R "$REF_FASTA" -O "$DICT_NAME"
+    fi
+fi
+
 if [[ -n "${MAX_MEM_GB:-}" && "$MAX_MEM_GB" -gt 0 ]]; then
     MEM_GB=$MAX_MEM_GB
 else
-    MEM_KB=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
+    MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     MEM_GB=$(( MEM_KB / 1024 / 1024 ))
     if [ "$MEM_GB" -gt 64 ]; then MEM_GB=64; fi
 fi
@@ -98,38 +130,40 @@ else
     CPU_COUNT=$(nproc)
 fi
 
-FASTQC_CPUS=$CPU_COUNT
-FQ2BAM_CPUS=$CPU_COUNT
-HC_CPUS=$CPU_COUNT
-GENO_CPUS=$CPU_COUNT
-VARFILT_CPUS=2
-PASSVCF_CPUS=1
+clamp_cpu() {
+    local val=$1
+    local min=$2
+    [ "$val" -lt "$min" ] && val=$min
+    [ "$val" -gt "$CPU_COUNT" ] && val=$CPU_COUNT
+    echo "$val"
+}
 
-FASTQC_MEM="$(( MEM_GB * 100 / 100 ))"
-[ "$FASTQC_MEM" -lt 2 ] && FASTQC_MEM=2
+clamp_mem() {
+    local val=$1
+    local min=$2
+    [ "$val" -lt "$min" ] && val=$min
+    [ "$val" -gt "$MEM_GB" ] && val=$MEM_GB
+    echo "$val"
+}
 
-FQ2BAM_MEM="$(( MEM_GB * 60 / 100 ))"
-[ "$FQ2BAM_MEM" -lt 8 ] && FQ2BAM_MEM=8
-
-HC_MEM="$(( MEM_GB * 60 / 100 ))"
-[ "$HC_MEM" -lt 8 ] && HC_MEM=8
-
-GENO_MEM="$(( MEM_GB * 30 / 100 ))"
-[ "$GENO_MEM" -lt 4 ] && GENO_MEM=4
-
-VARFILT_MEM="$(( MEM_GB * 10 / 100 ))"
-[ "$VARFILT_MEM" -lt 4 ] && VARFILT_MEM=4
-
-PASSVCF_MEM="$(( MEM_GB * 5 / 100 ))"
-[ "$PASSVCF_MEM" -lt 2 ] && PASSVCF_MEM=2
-
+FASTQC_CPUS=$(clamp_cpu $CPU_COUNT 1)
+FQ2BAM_CPUS=$(clamp_cpu $CPU_COUNT 1)
+HC_CPUS=$(clamp_cpu $CPU_COUNT 1)
+GENO_CPUS=$(clamp_cpu $CPU_COUNT 1)
+VARFILT_CPUS=$(clamp_cpu 2 1)
+PASSVCF_CPUS=$(clamp_cpu 1 1)
+FASTQC_MEM=$(clamp_mem $(( MEM_GB * 100 / 100 )) 2)
+FQ2BAM_MEM=$(clamp_mem $(( MEM_GB * 60 / 100 )) 8)
+HC_MEM=$(clamp_mem $(( MEM_GB * 60 / 100 )) 8)
+GENO_MEM=$(clamp_mem $(( MEM_GB * 30 / 100 )) 4)
+VARFILT_MEM=$(clamp_mem $(( MEM_GB * 10 / 100 )) 4)
+PASSVCF_MEM=$(clamp_mem $(( MEM_GB * 5 / 100 )) 2)
 FASTQC_MEM="${FASTQC_MEM} GB"
 FQ2BAM_MEM="${FQ2BAM_MEM} GB"
 HC_MEM="${HC_MEM} GB"
 GENO_MEM="${GENO_MEM} GB"
 VARFILT_MEM="${VARFILT_MEM} GB"
 PASSVCF_MEM="${PASSVCF_MEM} GB"
-
 
 MOUNTS=(
     -v "$APP_ROOT":"$APP_ROOT"
