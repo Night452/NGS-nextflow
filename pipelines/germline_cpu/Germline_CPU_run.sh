@@ -107,14 +107,17 @@ FASTQC_CPUS=$(( CPU_COUNT * 25 / 100 ))
 
 BWA_CPUS=$(( CPU_COUNT * 60 / 100 ))
 [ "$BWA_CPUS" -lt 4 ] && BWA_CPUS=4
+[ "$BWA_CPUS" -gt 16 ] && BWA_CPUS=16
 
 SORT_CPUS=$(( CPU_COUNT * 40 / 100 ))
 [ "$SORT_CPUS" -lt 2 ] && SORT_CPUS=2
+[ "$SORT_CPUS" -gt 16 ] && SORT_CPUS=16
 
 MARKDUP_CPUS=$SORT_CPUS
 
 HC_CPUS=$(( CPU_COUNT * 60 / 100 ))
 [ "$HC_CPUS" -lt 4 ] && HC_CPUS=4
+[ "$HC_CPUS" -gt 16 ] && HC_CPUS=16
 
 GENO_CPUS=$(( CPU_COUNT * 25 / 100 ))
 [ "$GENO_CPUS" -lt 2 ] && GENO_CPUS=2

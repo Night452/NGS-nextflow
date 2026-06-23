@@ -109,11 +109,14 @@ process SORT_BAM {
     tuple val(sample_id), path("${sample_id}.sorted.bam"), emit: sorted_bam
 
     script:
+    def mem_per_thread = Math.max( (task.memory.toMega() * 0.8 / task.cpus).intValue(), 500 )
+
     """
     echo "INFO: Sorting BAM for ${sample_id}"
 
     samtools sort \
         -@ ${task.cpus} \
+        -m ${mem_per_thread}M \
         -T /tmp/${sample_id}_tmp \
         -o ${sample_id}.sorted.bam \
         ${sam}

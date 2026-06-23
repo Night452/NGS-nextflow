@@ -52,8 +52,8 @@ fi
 
 # Auto-detect VRAM to prevent Out-Of-Memory (OOM) crashes
 VRAM_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -n1)
-if [ -n "$VRAM_MB" ] && [ "$VRAM_MB" -lt 16000 ]; then
-    echo "WARNING: GPU VRAM is less than 16GB (${VRAM_MB} MB detected)."
+if [ -n "$VRAM_MB" ] && [ "$VRAM_MB" -le 25000 ]; then
+    echo "WARNING: GPU VRAM is <= 24GB (${VRAM_MB} MB detected)."
     echo "Automatically forcing Low Memory Mode to prevent crashes."
     export LOW_MEMORY="1"
 fi

@@ -56,6 +56,13 @@ if ! [[ "$NUM_GPUS" =~ ^[0-9]+$ ]] || [ "$NUM_GPUS" -lt 1 ]; then
     NUM_GPUS=1
 fi
 
+# Auto-detect low memory requirement for GPUs with <= 24GB VRAM
+GPU_MEM_MAX=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | sort -nr | head -n 1 || echo "0")
+if [ "$GPU_MEM_MAX" -gt 0 ] && [ "$GPU_MEM_MAX" -le 25000 ]; then
+    export LOW_MEMORY=1
+    echo "INFO: Max GPU memory is ${GPU_MEM_MAX}MB (<= 24GB). Enabling Parabricks LOW_MEMORY mode to prevent OOM."
+fi
+
 # Parabricks Auto Mode requires ~50GB of System RAM per concurrent fq2bam process.
 # We must cap NUM_GPUS to physical RAM capacity to prevent OOM crashes on multi-GPU systems.
 if command -v awk &> /dev/null && [ -f /proc/meminfo ]; then

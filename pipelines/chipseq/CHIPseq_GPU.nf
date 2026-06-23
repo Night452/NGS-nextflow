@@ -16,6 +16,7 @@ params.reference        = null
 params.outdir           = null
 params.parabricks_image = "nvcr.io/nvidia/clara/clara-parabricks:4.7.0-1"
 params.macs2_image      = "quay.io/biocontainers/macs2:2.2.9.1--py310h1425a21_0"
+params.fastp_image      = "quay.io/biocontainers/fastp:0.23.4--h5f740d0_0"
 params.low_memory       = false
 params.num_gpus         = 1
 
@@ -128,7 +129,7 @@ process MACS2 {
     tuple val(treatment_id), path("${treatment_id}_macs2*"), emit: macs2_output
 
     script:
-    def control_args = control_bam.name != 'NO_FILE' ? "-c ${control_bam}" : ""
+    def control_args = control_bam.name != 'NO_CONTROL_BAM' ? "-c ${control_bam}" : ""
     def gpu_id = (task.index - 1) % (params.num_gpus as int)
     def env_override = "export CUDA_VISIBLE_DEVICES=${gpu_id}; export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
     """
@@ -213,7 +214,8 @@ workflow {
         .filter { meta, bam, bai -> meta.control == '' }
         .map { meta, bam, bai -> 
             // Dummy file for Nextflow to handle optional inputs cleanly
-            def dummy_file = file("NO_FILE")
+            def dummy_file = file("${params.outdir}/NO_CONTROL_BAM")
+            dummy_file.text = ""
             [meta.id, bam, dummy_file] 
         }
 
