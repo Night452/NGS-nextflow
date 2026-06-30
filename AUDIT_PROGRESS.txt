@@ -1,0 +1,26 @@
+# PIPELINE AUDIT PROGRESS TRACKER
+# ================================
+# Started: 2026-06-30 16:17
+# Last Updated: 2026-06-30 16:26
+
+## STATUS: COMPLETE
+
+## TASKS:
+- [x] Audit gui.py - PIPELINE_STEPS, TOOL_DESCRIPTIONS, tabs, run_pipeline mappings
+- [x] Audit gui.py - Somatic/scRNA-seq need: env vars, GTF handling, indexing checks
+- [x] Audit pipelines/somatic_cpu/ - Somatic_CPU.nf, .config, _run.sh
+- [x] Audit pipelines/somatic_gpu/ - Somatic_GPU.nf, .config, _run.sh  
+- [x] Audit pipelines/scrnaseq_cpu/ - scRNAseq_CPU.nf, .config, _run.sh
+- [x] Fix all identified issues
+- [x] Verify gui.py has tabs + run_pipeline for all 3 new pipelines
+
+## ISSUES FOUND:
+1. `gui.py` lacked execution map (`elif` blocks) for Somatic CPU, Somatic GPU, and scRNA-seq.
+2. `gui.py` did not pass the GTF file path (`REF_GTF`) into the subprocess environment, which would cause scRNA-seq and RNA-seq to fail when the user provided one.
+3. `run_singularity.sh` did not support the new singularity numbers (7, 8, 9) and did not pass `--gtf` to the Nextflow commands.
+
+## FIXES APPLIED:
+1. Modified `gui.py`'s `run_pipeline` method to correctly parse the GTF input and add `REF_GTF` to `env`.
+2. Modified `gui.py`'s `run_pipeline` method to map `Somatic CPU` (7), `Somatic GPU` (8), and `scRNA-seq` (9) to their respective shell scripts.
+3. Updated `run_singularity.sh` to include cases 4 through 9.
+4. Updated `run_singularity.sh` to append `--gtf $REF_GTF` if it is set in the environment.

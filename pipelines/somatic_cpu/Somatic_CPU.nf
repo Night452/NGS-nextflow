@@ -9,8 +9,6 @@ params.outdir      = null
 
 
 
-
-
 process FASTQC {
 
     tag "$sample_id"
@@ -234,11 +232,11 @@ process INDEX_BAM {
     """
 }
 
-process HAPLOTYPE_CALLER {
+process MUTECT2 {
 
     tag "$sample_id"
 
-    publishDir "${params.outdir}/gvcf", mode: 'copy'
+    publishDir "${params.outdir}/vcf", mode: 'copy'
 
     container 'broadinstitute/gatk:4.6.2.0'
 
@@ -253,91 +251,37 @@ process HAPLOTYPE_CALLER {
     path ref_dict
 
     output:
-    tuple val(sample_id), path("${sample_id}.g.vcf.gz"), path("${sample_id}.g.vcf.gz.tbi"), emit: gvcf
+    tuple val(sample_id),
+    path("${sample_id}.mutect2.vcf.gz"),
+    path("${sample_id}.mutect2.vcf.gz.tbi"),
+    path("${sample_id}.mutect2.vcf.gz.stats"),
+    emit: raw_vcf
 
     script:
 
     def java_mem = Math.max(task.memory.toGiga().intValue()-2, 1)
-    
+
     """
-    echo "INFO: HaplotypeCaller for ${sample_id}"
+    echo "INFO: Mutect2 for ${sample_id}"
 
     gatk \
         --java-options "-Xmx${java_mem}g" \
-        HaplotypeCaller \
+        Mutect2 \
         --native-pair-hmm-threads ${task.cpus} \
         -R ${reference} \
         -I ${bam} \
-        -O ${sample_id}.g.vcf.gz \
-        -ERC GVCF
+        -O ${sample_id}.mutect2.vcf.gz
 
-    gatk IndexFeatureFile \
-        -I ${sample_id}.g.vcf.gz
-    
-    [ -s "${sample_id}.g.vcf.gz" ] || {
-        echo "ERROR: empty GVCF"
+    [ -s "${sample_id}.mutect2.vcf.gz" ] || {
+        echo "ERROR: empty Mutect2 VCF"
         exit 1
     }
     """
 }
 
-process GENOTYPE_GVCFS {
+process FILTER_MUTECT_CALLS {
 
-    publishDir "${params.outdir}/vcf", mode: 'copy'
-
-    container 'broadinstitute/gatk:4.6.2.0'
-
-    errorStrategy 'retry'
-    maxRetries 1
-
-    input:
-    path gvcfs
-    path tbis
-
-    path reference
-    path ref_fai
-    path ref_dict
-
-    output:
-    tuple path("${params.cohort_name}.vcf.gz"), path("${params.cohort_name}.vcf.gz.tbi"), emit: cohort_vcf
-
-    script:
-
-    def java_mem = Math.max(task.memory.toGiga().intValue()-2, 1)
-
-    def gvcf_args = (gvcfs instanceof List
-        ? gvcfs.collect { "-V ${it}" }
-        : [ "-V ${gvcfs}" ]
-    ).join(" \\\n        ")
-
-    """
-    echo "INFO: Joint genotyping"
-
-    gatk \
-        --java-options "-Xmx${java_mem}g" \
-        CombineGVCFs \
-        -R ${reference} \
-        ${gvcf_args} \
-        -O combined.g.vcf.gz
-
-    gatk \
-        --java-options "-Xmx${java_mem}g" \
-        GenotypeGVCFs \
-        -R ${reference} \
-        -V combined.g.vcf.gz \
-        -O ${params.cohort_name}.vcf.gz
-    
-    gatk IndexFeatureFile \
-        -I ${params.cohort_name}.vcf.gz
-
-    [ -s "${params.cohort_name}.vcf.gz" ] || {
-        echo "ERROR: empty VCF"
-        exit 1
-    }
-    """
-}
-
-process VARIANT_FILTRATION {
+    tag "$sample_id"
 
     publishDir "${params.outdir}/vcf", mode: 'copy'
 
@@ -347,35 +291,31 @@ process VARIANT_FILTRATION {
     maxRetries 2
 
     input:
-    tuple path(vcf), path(vcf_tbi)
+    tuple val(sample_id), path(vcf), path(tbi), path(stats)
+
     path reference
     path ref_fai
     path ref_dict
 
     output:
-    tuple path("${params.cohort_name}.filtered.vcf.gz"),
-    path("${params.cohort_name}.filtered.vcf.gz.tbi"),
+    tuple val(sample_id),
+    path("${sample_id}.filtered.vcf.gz"),
+    path("${sample_id}.filtered.vcf.gz.tbi"),
     emit: filtered_vcf
 
     script:
     """
-    echo "INFO: VariantFiltration"
+    echo "INFO: FilterMutectCalls for ${sample_id}"
 
-    gatk VariantFiltration \
+    gatk FilterMutectCalls \
         -R ${reference} \
         -V ${vcf} \
-        -O ${params.cohort_name}.filtered.vcf.gz \
-        --filter-expression "QD < 2.0" \
-        --filter-name "LowQD" \
-        --filter-expression "FS > 60.0" \
-        --filter-name "StrandBias" \
-        --filter-expression "MQ < 40.0" \
-        --filter-name "LowMQ"
+        -O ${sample_id}.filtered.vcf.gz
 
     gatk IndexFeatureFile \
-        -I ${params.cohort_name}.filtered.vcf.gz
+        -I ${sample_id}.filtered.vcf.gz
 
-    [ -s "${params.cohort_name}.filtered.vcf.gz" ] || {
+    [ -s "${sample_id}.filtered.vcf.gz" ] || {
         echo "ERROR: empty filtered VCF"
         exit 1
     }
@@ -384,37 +324,40 @@ process VARIANT_FILTRATION {
 
 process PASS_VCF {
 
+    tag "$sample_id"
+
     publishDir "${params.outdir}/vcf", mode: 'copy'
 
-    container 'staphb/bcftools:1.20'
+    container 'broadinstitute/gatk:4.6.2.0'
 
     errorStrategy 'retry'
     maxRetries 2
 
     input:
-    tuple path(filtered_vcf), path(filtered_tbi)
+    tuple val(sample_id), path(filtered_vcf), path(filtered_tbi)
 
     output:
-    tuple path("${params.cohort_name}.pass.vcf.gz"),
-    path("${params.cohort_name}.pass.vcf.gz.csi"),
+    tuple val(sample_id),
+    path("${sample_id}.pass.vcf.gz"),
+    path("${sample_id}.pass.vcf.gz.csi"),
     emit: pass_vcf
 
     script:
     """
-    echo "INFO: Extracting PASS variants"
+    echo "INFO: Extracting PASS variants for ${sample_id}"
 
     bcftools view \
         -f PASS \
         ${filtered_vcf} \
         -Oz \
-        -o ${params.cohort_name}.pass.vcf.gz
+        -o ${sample_id}.pass.vcf.gz
 
     bcftools index \
-        ${params.cohort_name}.pass.vcf.gz
+        ${sample_id}.pass.vcf.gz
 
-    PASS_COUNT=\$(bcftools view -H ${params.cohort_name}.pass.vcf.gz | wc -l)
+    PASS_COUNT=\$(bcftools view -H ${sample_id}.pass.vcf.gz | wc -l)
 
-    echo "INFO: PASS variants = \${PASS_COUNT}"
+    echo "INFO: PASS variants for ${sample_id} = \${PASS_COUNT}"
     """
 }
 
@@ -444,7 +387,7 @@ workflow {
 
     log.info """
     ============================================
-     GERMLINE CPU VARIANT CALLING PIPELINE
+     SOMATIC CPU VARIANT CALLING PIPELINE
     ============================================
      reads      : ${params.reads}
      reference  : ${params.reference}
@@ -485,37 +428,21 @@ workflow {
         MARK_DUPLICATES.out.bam_metrics
     )
 
-    HAPLOTYPE_CALLER(
+    MUTECT2(
         INDEX_BAM.out.bam_bai,
         ref,
         ref_fai,
         ref_dict
     )
 
-    all_gvcfs_ch = HAPLOTYPE_CALLER.out.gvcf
-        .map { sample_id, gvcf, tbi -> gvcf }
-        .collect()
-        
-    all_tbis_ch = HAPLOTYPE_CALLER.out.gvcf
-        .map { sample_id, gvcf, tbi -> tbi }
-        .collect()
-
-    GENOTYPE_GVCFS(
-        all_gvcfs_ch,
-        all_tbis_ch,
-        ref,
-        ref_fai,
-        ref_dict
-    )
-
-    VARIANT_FILTRATION(
-        GENOTYPE_GVCFS.out.cohort_vcf,
+    FILTER_MUTECT_CALLS(
+        MUTECT2.out.raw_vcf,
         ref,
         ref_fai,
         ref_dict
     )
 
     PASS_VCF(
-        VARIANT_FILTRATION.out.filtered_vcf
+        FILTER_MUTECT_CALLS.out.filtered_vcf
     )
 }

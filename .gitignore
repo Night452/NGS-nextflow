@@ -3,3 +3,5 @@ work/
 results/
 *.log
 data/
+.venv/
+venv/

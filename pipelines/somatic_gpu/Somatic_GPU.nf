@@ -1,23 +1,18 @@
 #!/usr/bin/env nextflow
 
 /*
- * Germline Variant Calling Pipeline — NVIDIA Parabricks (GPU-accelerated)
- * Supports single-sample and cohort calling
- * Steps: FastQC → fq2bam → HaplotypeCaller (GVCF) → GenotypeGVCFs → Filtered VCF → PASS VCF
+ * Somatic Variant Calling Pipeline — NVIDIA Parabricks (GPU-accelerated)
+ * Steps: FastQC → fastp → fq2bam (GPU) → Mutect2 → FilterMutectCalls → PASS VCF
  */
 
 nextflow.enable.dsl = 2
 
 // ── Parameters ───────────────────────────────────────────────────────────────
-// No default paths. --reads, --reference and --outdir are REQUIRED and must
-// be supplied relative to the current working directory (run_pipeline.sh
-// prompts for these and passes them in). This keeps the pipeline portable —
-// no machine-specific paths are baked in anywhere.
 params.cohort_name      = "cohort"
 params.reads            = null
 params.reference        = null
 params.outdir           = null
-params.parabricks_image = "nvcr.io/nvidia/clara/clara-parabricks:4.7.0-1"
+params.parabricks_image = "nvcr.io/nvidia/clara/clara-parabricks:4.4.0-1"
 params.low_memory       = false
 params.num_gpus         = 1
 
@@ -45,7 +40,7 @@ process FASTQC {
     """
 }
 
-// ── Process 1.5: fastp (Trimming) ─────────────────────────────────────────────
+// ── Process 2: fastp (Trimming) ───────────────────────────────────────────────
 process FASTP {
     tag "$sample_id"
     publishDir "${params.outdir}/fastp", mode: 'copy'
@@ -72,7 +67,7 @@ process FASTP {
     """
 }
 
-// ── Process 2: fq2bam (GPU) ───────────────────────────────────────────────────
+// ── Process 3: fq2bam (GPU) ──────────────────────────────────────────────────
 process FQ2BAM {
     tag "$sample_id"
     publishDir "${params.outdir}/bam", mode: 'copy'
@@ -100,7 +95,7 @@ process FQ2BAM {
 
     script:
     def env_override = "export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
-    def rg = "@RG\\tID:${sample_id}\\tSM:${sample_id}\\tPL:ILLUMINA\\tLB:lib1\\tPU:unit1"
+    def rg = "@RG\\\\tID:${sample_id}\\\\tSM:${sample_id}\\\\tPL:ILLUMINA\\\\tLB:lib1\\\\tPU:unit1"
     """
     ${env_override}
     echo "INFO: fq2bam for ${sample_id}"
@@ -116,15 +111,13 @@ process FQ2BAM {
     """
 }
 
-// ── Process 3: HaplotypeCaller (GPU) — per-sample GVCF ───────────────────────
-process HAPLOTYPE_CALLER {
+// ── Process 4: Mutect2 (CPU — GATK) ──────────────────────────────────────────
+process MUTECT2 {
     tag "$sample_id"
-    publishDir "${params.outdir}/gvcf", mode: 'copy'
-    container params.parabricks_image
-    accelerator 1, type: 'nvidia.com/gpu'
-    maxForks (params.num_gpus as int)
+    publishDir "${params.outdir}/vcf", mode: 'copy'
+    container 'broadinstitute/gatk:4.6.2.0'
     errorStrategy 'retry'
-    maxRetries 1
+    maxRetries 2
 
     input:
     tuple val(sample_id), path(bam), path(bai)
@@ -133,128 +126,80 @@ process HAPLOTYPE_CALLER {
     path ref_dict
 
     output:
-    tuple val(sample_id), path("${sample_id}.g.vcf"), emit: gvcf
+    tuple val(sample_id), path("${sample_id}.raw.vcf"),     emit: raw_vcf
+    tuple val(sample_id), path("${sample_id}.raw.vcf.stats"), emit: stats
 
     script:
-    def env_override = "export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64"
     """
-    ${env_override}
-    echo "INFO: HaplotypeCaller for ${sample_id}"
+    echo "INFO: Mutect2 for ${sample_id}"
 
-    pbrun haplotypecaller \\
-        --ref ${reference} \\
-        --in-bam ${bam} \\
-        --out-variants ${sample_id}.g.vcf \\
-        --gvcf \\
-        --num-gpus 1
+    gatk Mutect2 \\
+        -R ${reference} \\
+        -I ${bam} \\
+        -O ${sample_id}.raw.vcf
 
-    [ -s "${sample_id}.g.vcf" ] || { echo "ERROR: empty GVCF for ${sample_id}"; exit 1; }
+    [ -s "${sample_id}.raw.vcf" ] || { echo "ERROR: empty raw VCF for ${sample_id}"; exit 1; }
     """
 }
 
-// ── Process 4: GenotypeGVCFs (GPU) ───────────────────────────────────────────
-process GENOTYPE_GVCFS {
+// ── Process 5: FilterMutectCalls ──────────────────────────────────────────────
+process FILTER_MUTECT_CALLS {
+    tag "$sample_id"
     publishDir "${params.outdir}/vcf", mode: 'copy'
-    container params.parabricks_image
-    errorStrategy 'retry'
-    maxRetries 1
-
-    input:
-    path gvcfs
-    path reference
-    path ref_fai
-    path ref_dict
-
-    output:
-    path "${params.cohort_name}.vcf", emit: cohort_vcf
-
-    script:
-    def gvcf_args = (gvcfs instanceof List
-        ? gvcfs.collect { "--in-gvcf ${it}" }
-        : [ "--in-gvcf ${gvcfs}" ]
-    ).join(" \\\n        ")
-    """
-    echo "INFO: GenotypeGVCFs — joint genotyping"
-
-    pbrun genotypegvcf \\
-        --ref ${reference} \\
-        ${gvcf_args} \\
-        --out-vcf ${params.cohort_name}.vcf
-
-    [ -s "${params.cohort_name}.vcf" ] || { echo "ERROR: empty cohort VCF"; exit 1; }
-    """
-}
-
-// ── Process 5: Variant Filtration ─────────────────────────────────────────────
-process VARIANT_FILTRATION {
-
-    publishDir "${params.outdir}/vcf", mode: 'copy'
-
     container 'broadinstitute/gatk:4.6.2.0'
-
     errorStrategy 'retry'
     maxRetries 2
 
     input:
-    path vcf
+    tuple val(sample_id), path(raw_vcf)
+    tuple val(sample_id_stats), path(stats)
     path reference
     path ref_fai
     path ref_dict
 
     output:
-    path "${params.cohort_name}.filtered.vcf", emit: filtered_vcf
+    tuple val(sample_id), path("${sample_id}.filtered.vcf"), emit: filtered_vcf
 
     script:
     """
-    gatk VariantFiltration \
-        -R ${reference} \
-        -V ${vcf} \
-        -O ${params.cohort_name}.filtered.vcf \
-        --filter-expression "QD < 2.0" \
-        --filter-name "LowQD" \
-        --filter-expression "FS > 60.0" \
-        --filter-name "StrandBias" \
-        --filter-expression "MQ < 40.0" \
-        --filter-name "LowMQ"
+    echo "INFO: FilterMutectCalls for ${sample_id}"
 
-    [ -s "${params.cohort_name}.filtered.vcf" ] || {
-        echo "ERROR: empty filtered VCF"
-        exit 1
-    }
+    gatk FilterMutectCalls \\
+        -R ${reference} \\
+        -V ${raw_vcf} \\
+        --stats ${stats} \\
+        -O ${sample_id}.filtered.vcf
+
+    [ -s "${sample_id}.filtered.vcf" ] || { echo "ERROR: empty filtered VCF for ${sample_id}"; exit 1; }
     """
 }
 
-
+// ── Process 6: PASS VCF ──────────────────────────────────────────────────────
 process PASS_VCF {
-
+    tag "$sample_id"
     publishDir "${params.outdir}/vcf", mode: 'copy'
-
     container 'staphb/bcftools:1.20'
-
     errorStrategy 'retry'
     maxRetries 2
 
     input:
-    path filtered_vcf
+    tuple val(sample_id), path(filtered_vcf)
 
     output:
-    path "${params.cohort_name}.pass.vcf", emit: pass_vcf
+    tuple val(sample_id), path("${sample_id}.pass.vcf"), emit: pass_vcf
 
     script:
     """
-    bcftools view \
-        -f PASS \
-        ${filtered_vcf} \
-        > ${params.cohort_name}.pass.vcf
+    bcftools view \\
+        -f PASS \\
+        ${filtered_vcf} \\
+        > ${sample_id}.pass.vcf
 
-    PASS_COUNT=\$(grep -vc "^#" ${params.cohort_name}.pass.vcf || true)
+    PASS_COUNT=\$(grep -vc "^#" ${sample_id}.pass.vcf || true)
 
-    echo "INFO: PASS variants = \${PASS_COUNT}"
+    echo "INFO: PASS variants for ${sample_id} = \${PASS_COUNT}"
     """
 }
-
-
-
 
 // ── Workflow ──────────────────────────────────────────────────────────────────
 workflow {
@@ -266,7 +211,6 @@ workflow {
     if (!params.outdir)
         error "MISSING PARAMETER: --outdir '<path>' is required"
 
-    // FIX: Validation now inside workflow block — DSL2 forbids top-level statements
     def ref      = file(params.reference)
     def ref_fai  = file("${params.reference}.fai")
     def ref_base = params.reference.toString().replaceAll(/\.fasta$/, "").replaceAll(/\.fa$/, "")
@@ -281,7 +225,7 @@ workflow {
 
     log.info """
     ============================================
-     GERMLINE VARIANT CALLING PIPELINE
+     SOMATIC GPU VARIANT CALLING PIPELINE
     ============================================
      reads      : ${params.reads}
      reference  : ${params.reference}
@@ -300,23 +244,14 @@ workflow {
     FQ2BAM          ( FASTP.out.trimmed_reads, ref, ref_fai, ref_dict, ref_bwt, ref_ann, ref_amb, ref_pac, ref_sa )
 
     // STRICT EXECUTION BARRIER:
-    // Prevent HAPLOTYPE_CALLER from starting until ALL FQ2BAM tasks are finished.
-    // This prevents cross-process GPU memory concurrency (e.g. sample1 HC running while sample2 FQ2BAM runs),
-    // which would crash systems with <100GB RAM even with maxForks limits.
+    // Prevent Mutect2 from starting until ALL FQ2BAM tasks are finished.
+    // This prevents cross-process GPU memory concurrency which would crash
+    // systems with limited RAM even with maxForks limits.
     barrier_ch = FQ2BAM.out.bam_bai
         .toList()
         .flatMap { it }
 
-    HAPLOTYPE_CALLER( barrier_ch, ref, ref_fai, ref_dict )
-
-    // Wait for ALL GVCFs before joint genotyping
-    all_gvcfs_ch = HAPLOTYPE_CALLER.out.gvcf
-        .map    { sample_id, gvcf -> gvcf }
-        .collect()
-
-    // FIX: GENOTYPE_GVCFS was never invoked — added the missing call
-    GENOTYPE_GVCFS( all_gvcfs_ch, ref, ref_fai, ref_dict )
-
-   VARIANT_FILTRATION(GENOTYPE_GVCFS.out.cohort_vcf,ref,ref_fai,ref_dict)
-    PASS_VCF( VARIANT_FILTRATION.out.filtered_vcf )
+    MUTECT2             ( barrier_ch, ref, ref_fai, ref_dict )
+    FILTER_MUTECT_CALLS ( MUTECT2.out.raw_vcf, MUTECT2.out.stats, ref, ref_fai, ref_dict )
+    PASS_VCF            ( FILTER_MUTECT_CALLS.out.filtered_vcf )
 }

@@ -76,7 +76,7 @@ process BWA_ALIGN {
     publishDir "${params.outdir}/bam", mode: 'copy'
     container params.bwa_image
     errorStrategy 'retry'
-    maxRetries 1
+    maxRetries 3
 
     input:
     tuple val(meta), path(r1), path(r2)
@@ -116,7 +116,7 @@ process SORT_BAM {
     publishDir "${params.outdir}/bam", mode: 'copy'
     container params.gatk_image
     errorStrategy 'retry'
-    maxRetries 1
+    maxRetries 3
 
     input:
     tuple val(meta), path(sam)
@@ -147,7 +147,7 @@ process MARK_DUPLICATES {
     publishDir "${params.outdir}/bam", mode: 'copy'
     container params.gatk_image
     errorStrategy 'retry'
-    maxRetries 1
+    maxRetries 3
 
     input:
     tuple val(meta), path(sorted_bam)
@@ -176,7 +176,7 @@ process INDEX_BAM {
     publishDir "${params.outdir}/bam", mode: 'copy'
     container params.gatk_image
     errorStrategy 'retry'
-    maxRetries 1
+    maxRetries 3
 
     input:
     tuple val(meta), path(bam), path(metrics)
@@ -225,6 +225,9 @@ process MACS2 {
         --outdir . || { echo "WARNING: MACS2 failed, likely due to zero mapped reads in test dataset."; touch ${treatment_id}_macs2_peaks.xls; }
     """
 }
+
+
+
 
 // ── Workflow ──────────────────────────────────────────────────────────────────
 workflow {

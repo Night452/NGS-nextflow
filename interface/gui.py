@@ -1,168 +1,172 @@
 import os
 import sys
+import time
 import psutil
 import subprocess
 from pathlib import Path
 import re
 import math
-
-from PySide6.QtCore import Qt, QProcess, QProcessEnvironment, QTimer, QThread, Signal, QPoint
-from PySide6.QtGui import QFont, QTextCursor, QIcon, QPainter, QColor, QRadialGradient, QPainterPath
+from PySide6.QtCore import Qt, QProcess, QProcessEnvironment, QTimer, QThread, Signal, QVariantAnimation, QPropertyAnimation, QEasingCurve, QRect
+from PySide6.QtGui import QFont, QTextCursor, QIcon, QPainter, QColor, QPixmap
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QLineEdit, QPushButton, QFileDialog, QTextEdit, QGroupBox, 
-    QMessageBox, QCheckBox, QSlider, QProgressBar, QTabWidget, QDialog, QStyle, QSizeGrip
+    QMessageBox, QCheckBox, QSlider, QProgressBar, QTabWidget, QDialog, QStyle, QSizeGrip,
+    QGraphicsDropShadowEffect, QGraphicsOpacityEffect, QScrollArea, QFrame,
+    QListWidget, QStackedWidget, QListWidgetItem
 )
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 APP_ROOT = SCRIPT_DIR.parent
 RESULTS_DIR = APP_ROOT / "results"
-
 MODERN_QSS = """
 QMainWindow {
-    background-color: #0a0a0c;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #0F172A, stop:1 #1E1B4B);
 }
 QWidget {
     background-color: transparent;
-    color: #b3b3b3;
-    font-family: 'Circular Std', 'Inter', 'Proxima Nova', 'Segoe UI', Arial, sans-serif;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: 'Plus Jakarta Sans', 'Inter', 'Segoe UI', Arial, sans-serif;
     font-size: 14px;
 }
-QTabWidget::pane {
-    border: 1px solid rgba(255, 255, 255, 20);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 10);
-}
-QTabBar::tab {
-    background: transparent;
-    color: #b3b3b3;
-    padding: 12px 24px;
+QStackedWidget {
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 20px;
-    margin-right: 4px;
+    background: rgba(20, 20, 30, 0.4);
+}
+QListWidget {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+QListWidget::item {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 12px 24px;
+    border-radius: 16px;
     margin-bottom: 4px;
-    font-weight: bold;
+    font-weight: 600;
 }
-QTabBar::tab:selected {
-    background: rgba(255, 255, 255, 20);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 15);
+QListWidget::item:selected {
+    background: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
-QTabBar::tab:hover:!selected {
-    background: rgba(255, 255, 255, 10);
-    color: #ffffff;
+QListWidget::item:hover:!selected {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.9);
 }
 QGroupBox {
-    border: 1px solid rgba(255, 255, 255, 15);
-    border-radius: 12px;
-    margin-top: 18px;
-    padding-top: 15px;
-    font-weight: bold;
-    background: rgba(255, 255, 255, 5);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    margin-top: 24px;
+    padding-top: 20px;
+    font-weight: 600;
+    background: rgba(20, 20, 30, 0.4);
 }
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    left: 15px;
-    padding: 0 5px;
-    color: #ffffff;
-    font-size: 15px;
+    left: 20px;
+    padding: 0 8px;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 18px;
+    font-weight: bold;
+    background-color: transparent;
 }
 QLabel {
     background-color: transparent;
 }
 QLineEdit {
-    background-color: rgba(255, 255, 255, 10);
-    border: 1px solid rgba(255, 255, 255, 20);
-    border-radius: 20px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
     padding: 10px 15px;
-    color: #ffffff;
+    color: rgba(255, 255, 255, 0.9);
 }
 QLineEdit:hover {
-    background-color: rgba(255, 255, 255, 20);
+    background-color: rgba(0, 0, 0, 0.4);
 }
 QLineEdit:focus {
-    background-color: rgba(255, 255, 255, 20);
-    border: 1px solid #00bfff;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 2px solid #1856FF;
 }
 QPushButton {
-    background-color: rgba(255, 255, 255, 15);
-    border: 1px solid rgba(255, 255, 255, 20);
-    border-radius: 20px;
-    padding: 12px 24px;
-    color: #ffffff;
-    font-weight: bold;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    padding: 10px 16px;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
 }
 QPushButton:hover {
-    background-color: rgba(255, 255, 255, 30);
-    border: 1px solid rgba(255, 255, 255, 40);
+    background-color: rgba(255, 255, 255, 0.15);
 }
 QPushButton:pressed {
-    background-color: rgba(255, 255, 255, 5);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 QPushButton:disabled {
-    background: rgba(255, 255, 255, 5);
-    color: #555555;
-    border: 1px solid rgba(255, 255, 255, 5);
+    background: rgba(255, 255, 255, 0.02);
+    color: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 QCheckBox {
     background-color: transparent;
     padding: 10px 0;
     font-size: 14px;
-    font-weight: bold;
-    color: #b3b3b3;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
 }
 QCheckBox:hover {
-    color: #ffffff;
+    color: #FFFFFF;
 }
 QCheckBox::indicator {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #535353;
-    border-radius: 4px;
-    background: #181818;
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.3);
 }
 QCheckBox::indicator:checked {
-    background: #7b68ee;
-    border: 2px solid #7b68ee;
+    background: #1856FF;
+    border: 1px solid #1856FF;
 }
 QTextEdit {
-    background-color: #000000;
-    color: #00fa9a;
-    border: none;
-    border-radius: 12px;
+    background-color: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
     padding: 15px;
-    font-family: 'Consolas', monospace;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
 }
 QProgressBar {
-    border: none;
-    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
     text-align: center;
-    background-color: #282828;
+    background-color: rgba(0, 0, 0, 0.3);
     color: white;
     font-weight: bold;
 }
 QProgressBar::chunk {
-    background-color: #7b68ee;
-    border-radius: 6px;
+    background-color: #1856FF;
+    border-radius: 8px;
 }
 QSlider::groove:horizontal {
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     height: 6px;
-    background: #535353;
+    background: rgba(0, 0, 0, 0.3);
     border-radius: 3px;
 }
 QSlider::handle:horizontal {
-    background: #ffffff;
-    border: none;
-    width: 12px;
-    margin: -3px 0;
-    border-radius: 6px;
+    background: #1856FF;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    width: 14px;
+    margin: -4px 0;
+    border-radius: 7px;
 }
 QSlider::handle:horizontal:hover {
-    background: #7b68ee;
+    background: #4A7BFF;
 }
 """
-
 def get_vram():
     try:
         res = subprocess.run(["nvidia-smi", "--query-gpu=memory.free,memory.total", "--format=csv,noheader,nounits"], capture_output=True, text=True)
@@ -172,32 +176,114 @@ def get_vram():
     except Exception:
         pass
     return None, None
-
 from PySide6.QtGui import QPainter, QColor
-
 class LimitProgressBar(QProgressBar):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.limit_ratio = 1.0
-
     def setLimitRatio(self, ratio):
         self.limit_ratio = ratio
         self.update()
-
     def paintEvent(self, event):
         super().paintEvent(event)
         if 0.0 < self.limit_ratio < 1.0:
             painter = QPainter(self)
             x_pos = int(self.width() * self.limit_ratio)
             painter.fillRect(x_pos - 1, 0, 3, self.height(), QColor(255, 0, 0))
-
+class AnimatedButton(QPushButton):
+    def __init__(self, text, base_color="rgba(255, 255, 255, 20)", hover_color="rgba(255, 255, 255, 40)", pressed_color="rgba(255, 255, 255, 10)", text_color="rgba(255, 255, 255, 0.9)", border_color="rgba(255, 255, 255, 0.15)"):
+        super().__init__(text)
+        self.base_color = QColor(*self._parse_rgba(base_color))
+        self.hover_color = QColor(*self._parse_rgba(hover_color))
+        self.pressed_color = QColor(*self._parse_rgba(pressed_color))
+        self.current_color = self.base_color
+        
+        self.text_color = text_color
+        self.border_color = border_color
+        
+        # Remove drop shadow for glassmorphism as it conflicts with the translucent panel look
+        self.setGraphicsEffect(None)
+        
+        self.anim = QVariantAnimation(self)
+        self.anim.setDuration(150)
+        self.anim.valueChanged.connect(self._update_color)
+        self._update_stylesheet()
+    def _parse_rgba(self, rgba_str):
+        if rgba_str.startswith("#"):
+            return QColor(rgba_str).red(), QColor(rgba_str).green(), QColor(rgba_str).blue(), 255
+        import re
+        match = re.search(r'rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)', rgba_str)
+        if match:
+            r, g, b = int(match.group(1)), int(match.group(2)), int(match.group(3))
+            a = float(match.group(4)) * 255 if match.group(4) else 255
+            return r, g, b, int(a)
+        return 255, 255, 255, 255
+    def setColors(self, base_color, hover_color, pressed_color):
+        self.base_color = QColor(*self._parse_rgba(base_color))
+        self.hover_color = QColor(*self._parse_rgba(hover_color))
+        self.pressed_color = QColor(*self._parse_rgba(pressed_color))
+        self.current_color = self.base_color
+        self._update_stylesheet()
+    def _update_color(self, color):
+        self.current_color = color
+        self._update_stylesheet()
+    def _update_stylesheet(self):
+        bg_rgba = f"rgba({self.current_color.red()}, {self.current_color.green()}, {self.current_color.blue()}, {self.current_color.alpha() / 255.0})"
+        self.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {bg_rgba};
+                border: 1px solid {self.border_color};
+                border-radius: 16px;
+                padding: 10px 16px;
+                color: {self.text_color};
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                color: #FFFFFF;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+            }}
+            QPushButton:disabled {{
+                background-color: rgba(255, 255, 255, 0.02);
+                color: rgba(255, 255, 255, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+            }}
+        """)
+    def enterEvent(self, event):
+        if self.isEnabled():
+            self.anim.stop()
+            self.anim.setStartValue(self.current_color)
+            self.anim.setEndValue(self.hover_color)
+            self.anim.start()
+        super().enterEvent(event)
+    def leaveEvent(self, event):
+        if self.isEnabled():
+            self.anim.stop()
+            self.anim.setStartValue(self.current_color)
+            self.anim.setEndValue(self.base_color)
+            self.anim.start()
+        super().leaveEvent(event)
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton and self.isEnabled():
+            self.anim.stop()
+            self.anim.setStartValue(self.current_color)
+            self.anim.setEndValue(self.pressed_color)
+            self.anim.start()
+        super().mousePressEvent(event)
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton and self.isEnabled():
+            self.anim.stop()
+            self.anim.setStartValue(self.current_color)
+            if self.underMouse():
+                self.anim.setEndValue(self.hover_color)
+            else:
+                self.anim.setEndValue(self.base_color)
+            self.anim.start()
+        super().mouseReleaseEvent(event)
 class DockerMonitorThread(QThread):
     stats_updated = Signal(float, float)
-
     def __init__(self):
         super().__init__()
         self.running = True
-
     def run(self):
         import time, subprocess
         while self.running:
@@ -226,11 +312,9 @@ class DockerMonitorThread(QThread):
             
             self.stats_updated.emit(doc_cpu, doc_mem)
             time.sleep(1.5)
-
     def stop(self):
         self.running = False
         self.wait()
-
 class ResourceMonitor(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -251,11 +335,9 @@ class ResourceMonitor(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_monitor)
         self.timer.start(1000)
-
     def update_docker_stats(self, cpu, mem):
         self.doc_cpu = cpu
         self.doc_mem = mem
-
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
@@ -273,7 +355,6 @@ class ResourceMonitor(QWidget):
         m_layout.addWidget(self.vram_bar)
         monitor_group.setLayout(m_layout)
         layout.addWidget(monitor_group)
-
         alloc_group = QGroupBox("Pipeline Resource Allocation")
         a_layout = QVBoxLayout()
         
@@ -298,15 +379,12 @@ class ResourceMonitor(QWidget):
         alloc_group.setLayout(a_layout)
         layout.addWidget(alloc_group)
         layout.addStretch()
-
     def update_cpu(self, val):
         self.parent_gui.alloc_cpus = val
         self.lbl_cpu.setText(f"Max CPU Cores: {val} / {self.sys_cpus}")
-
     def update_mem(self, val):
         self.parent_gui.alloc_mem = val
         self.lbl_mem.setText(f"Max Memory (GB): {val} / {self.sys_mem_gb}")
-
     def update_monitor(self):
         cpu_sys_max = self.sys_cpus * 100
         cpu_alloc_max = self.parent_gui.alloc_cpus * 100
@@ -347,88 +425,326 @@ class ResourceMonitor(QWidget):
         else:
             self.vram_bar.setFormat("VRAM Not Detected")
             self.vram_bar.setValue(0)
-
+PIPELINE_STEPS = {
+    "Germline GPU": ["FastQC", "fastp", "fq2bam", "HaplotypeCaller", "JointGenotyping", "Filtration"],
+    "Germline CPU": ["FastQC", "fastp", "BWA mem", "MarkDuplicates", "HaplotypeCaller", "CombineGVCFs", "JointGenotyping", "Filtration"],
+    "RNA-seq CPU": ["FastQC", "fastp", "STAR", "featureCounts"],
+    "RNA-seq GPU": ["FastQC", "fastp", "Parabricks rna_fq2bam", "featureCounts"],
+    "ChIP-seq GPU": ["FastQC", "fastp", "fq2bam", "MACS2"],
+    "ChIP-seq CPU": ["FastQC", "fastp", "BWA mem", "MarkDuplicates", "MACS2"],
+    "Somatic GPU": ["FastQC", "fastp", "fq2bam", "Mutect2", "FilterMutectCalls", "PASS VCF"],
+    "Somatic CPU": ["FastQC", "fastp", "BWA mem", "MarkDuplicates", "Mutect2", "FilterMutectCalls", "PASS VCF"],
+    "scRNA-seq": ["FastQC", "STARsolo", "Summary"]
+}
+TOOL_DESCRIPTIONS = {
+    "FastQC": "FastQC is a quality control application used to analyze high-throughput sequence data. It reads raw sequencing files (FASTQ) and performs a series of analytical modules to check for potential problems such as low-confidence base calls, sequence biases, adapter contamination, and overrepresented sequences. Generating a comprehensive HTML report, FastQC allows researchers to quickly evaluate whether their data is of high enough quality to proceed with downstream mapping and assembly tasks. It is considered the industry standard first-step for any next-generation sequencing bioinformatics pipeline, ensuring that all subsequent variant calling or peak detection is built on fundamentally sound and unbiased data.",
+    "fastp": "fastp is an ultra-fast, all-in-one preprocessor for FASTQ files that performs essential data cleaning before alignment. It automatically detects and trims sequencing adapters, filters out reads with poor quality scores, and trims low-quality bases from the ends of reads. Because it is written in C++ and heavily multi-threaded, it completes these tasks significantly faster than traditional tools like Trimmomatic. Additionally, it generates highly visual HTML and JSON reports that detail the read quality before and after filtering. By cleaning the raw reads, fastp significantly improves the accuracy and efficiency of downstream genomic alignments.",
+    "fq2bam": "fq2bam is an NVIDIA Parabricks GPU-accelerated tool that drastically speeds up the read alignment process. It acts as a hyper-optimized equivalent to the traditional BWA-MEM aligner, mapping raw paired-end DNA sequencing reads (FASTQ) against a large reference genome. Not only does it perform the initial alignment, but it also simultaneously sorts the resulting BAM file and marks PCR duplicates in a single pass. By leveraging the parallel computing power of NVIDIA GPUs, fq2bam can reduce what normally takes several hours on a CPU down to just a few minutes, massively accelerating the variant calling pipeline.",
+    "BWA mem": "BWA-MEM (Burrows-Wheeler Aligner) is an industry-standard software algorithm used for mapping low-divergent DNA sequence reads against a large reference genome, such as the human genome. It is highly accurate and performs exceptionally well with reads generated by Illumina sequencing machines. BWA-MEM employs a seeding-and-extension approach to efficiently locate the best mapping positions for each read, accommodating mismatches and small gaps caused by genetic variants or sequencing errors. The output is a SAM file that provides the foundation for all subsequent analyses, making BWA-MEM a critical, highly-trusted component of modern bioinformatics and genomic research.",
+    "MarkDuplicates": "The GATK MarkDuplicates tool is designed to locate and tag duplicate reads within a BAM or SAM file. During the library preparation phase of sequencing, DNA fragments are often amplified using PCR, which can create identical copies of the exact same DNA molecule. If left unchecked, these artificial duplicates will heavily bias downstream variant calling by falsely inflating the confidence of specific mutations. MarkDuplicates analyzes the start and end coordinates of aligned reads to identify these clones, tagging them so that downstream algorithms like HaplotypeCaller can ignore them, ensuring that variant calls are based strictly on unique biological evidence.",
+    "DeepVariant": "DeepVariant is a highly advanced, deep learning-based variant caller developed by Google and accelerated by NVIDIA Parabricks. Instead of relying strictly on traditional statistical models, DeepVariant converts aligned genomic reads (BAM files) into visual image tensors and uses a Convolutional Neural Network (CNN) to identify genetic variants (SNPs and indels). This image-recognition approach allows it to accurately distinguish between true biological mutations and sequencing artifacts, often outperforming traditional callers in complex genomic regions. By utilizing GPUs, the Parabricks implementation of DeepVariant delivers these highly accurate genomic variant calls at unprecedented, industry-leading speeds.",
+    "HaplotypeCaller": "HaplotypeCaller is the flagship variant calling tool within the GATK (Genome Analysis Toolkit) suite, widely considered the gold standard for identifying germline SNPs and indels. Rather than simply looking at piled-up reads, it dynamically identifies regions of the genome that show signs of variation and performs a complete local re-assembly of the DNA sequence (haplotypes) in those active regions. This sophisticated re-assembly process allows it to accurately call complex genetic insertions and deletions that simpler algorithms often miss. It outputs its findings into a Genomic VCF (GVCF) file, setting the stage for highly accurate joint cohort genotyping.",
+    "CombineGVCFs": "CombineGVCFs is a crucial utility in the GATK suite used for scaling variant discovery across large cohorts of patients or samples. When analyzing multiple samples, it is highly computationally inefficient to analyze them all at once initially. Instead, researchers run HaplotypeCaller on each sample individually to generate a single-sample GVCF. CombineGVCFs then merges these individual GVCF files into a single, massive multi-sample GVCF file. This consolidated file perfectly aligns the genomic data of all patients, allowing the subsequent Joint Genotyping step to accurately compare variant frequencies and evaluate statistical confidence across the entire population simultaneously.",
+    "JointGenotyping": "Joint Genotyping (GenotypeGVCFs) is the final variant discovery step in the GATK Best Practices pipeline. Rather than analyzing each sample in isolation, this tool analyzes a merged cohort GVCF file, leveraging the statistical power of the entire group of samples simultaneously. If a specific mutation is weakly supported in one patient but strongly supported in ten others, joint genotyping uses the population data to confidently validate the weak call. This group-aware approach significantly reduces false positives, improves the accuracy of rare variant detection, and ensures that every patient has a definitive genotype call at every mutated site across the genome.",
+    "Filtration": "Variant Filtration is the process of applying hard statistical thresholds to raw variant calls (VCFs) to separate true biological mutations from sequencing artifacts. Even the best variant callers produce false positives due to machine errors, repetitive DNA regions, or strand biases. This step filters out untrustworthy variants by evaluating metrics such as Quality by Depth (QD), Mapping Quality (MQ), and Fisher Strand bias (FS). Variants failing these strict thresholds are tagged in the VCF file so they can be ignored in downstream clinical or research analyses. This ensures the final dataset is of the highest possible diagnostic quality.",
+    "MACS2": "MACS2 (Model-based Analysis of ChIP-Seq) is the industry-leading algorithm for identifying transcription factor binding sites and histone modification peaks in ChIP-seq datasets. It works by analyzing the distribution of aligned reads across the genome to detect regions where proteins are significantly enriched compared to a background control sample. MACS2 dynamically models the shift size of the sequenced DNA fragments to pinpoint the exact binding locations of regulatory proteins with high statistical confidence. The resulting 'peaks' allow researchers to understand epigenetic gene regulation, map open chromatin regions, and identify crucial DNA-protein interaction networks within the cell.",
+    "STAR": "STAR (Spliced Transcripts Alignment to a Reference) is an ultra-fast, RNA-seq aligner that maps RNA reads directly to the genome while seamlessly handling large intronic gaps. It is highly optimized for performance and is the gold standard for discovering novel splice junctions and quantifying gene expression.",
+    "featureCounts": "featureCounts is a highly efficient read quantification program that assigns mapped sequencing reads to genomic features (like genes or exons). It is an essential downstream step in RNA-seq that translates aligned BAM files into a simple matrix of gene expression counts for differential expression analysis.",
+    "Parabricks rna_fq2bam": "NVIDIA Clara Parabricks rna_fq2bam accelerates STAR RNA-seq alignment using GPUs. It provides blisteringly fast mapping to the genome while seamlessly handling large intronic gaps, drastically reducing pipeline execution time on hardware with NVIDIA GPUs.",
+    "Mutect2": "GATK Mutect2 is the gold-standard somatic variant caller designed to detect mutations in cancer genomes. Unlike HaplotypeCaller (which assumes germline diploid genetics), Mutect2 is specifically built to identify low-frequency somatic mutations present in only a fraction of tumor cells. It uses a sophisticated Bayesian model to distinguish true somatic variants from sequencing artifacts and germline polymorphisms, even at very low allele fractions (<1%). Mutect2 can operate in tumor-only mode (without a matched normal) or in tumor-normal paired mode for maximum specificity.",
+    "FilterMutectCalls": "FilterMutectCalls is a GATK post-processing tool that applies a series of sophisticated statistical filters to raw Mutect2 somatic variant calls. It evaluates each candidate mutation against multiple quality metrics including strand bias, mapping quality, contamination estimates, and orientation bias artifacts. Variants failing these filters are tagged in the VCF FILTER column, allowing downstream analyses to focus exclusively on high-confidence somatic mutations. This step is critical for reducing false positive rates in cancer genomics studies.",
+    "PASS VCF": "The PASS VCF extraction step uses bcftools to select only those somatic variant calls that have passed all quality filters applied by FilterMutectCalls. This produces a clean, publication-ready VCF file containing only high-confidence somatic mutations suitable for downstream analyses such as mutational signature profiling, driver gene identification, and clinical reporting.",
+    "STARsolo": "STARsolo is a built-in module of the STAR aligner specifically designed for processing single-cell RNA-seq data from 10x Genomics Chromium platforms. It performs simultaneous genome alignment, cell barcode demultiplexing, and UMI (Unique Molecular Identifier) counting in a single pass. STARsolo generates gene expression count matrices compatible with downstream analysis tools like Seurat and Scanpy. It is extremely fast and memory-efficient compared to CellRanger, while producing nearly identical results.",
+    "Summary": "The Summary process parses STARsolo output matrices to generate key single-cell quality metrics including: estimated number of cells, total features (genes) detected, total UMI counts, and mean UMIs per cell. These metrics provide a quick quality assessment of the single-cell library before deeper analysis with tools like Seurat or Scanpy."
+}
+from PySide6.QtWidgets import QGraphicsBlurEffect
+from PySide6.QtCore import QPoint
+class HorizontalScrollArea(QScrollArea):
+    def wheelEvent(self, event):
+        delta = event.angleDelta().y()
+        # Convert vertical wheel scrolling to horizontal scroll
+        self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta)
+class FlowchartViewer(QFrame):
+    def __init__(self, pipeline_type, parent=None):
+        super().__init__(parent)
+        self.pipeline_type = pipeline_type
+        self.steps = PIPELINE_STEPS.get(pipeline_type, [])
+        self.parent_gui = parent
+        
+        self.setObjectName("FlowchartViewer")
+        self.setStyleSheet("""
+            #FlowchartViewer {
+                background-color: rgba(0, 0, 0, 128);
+                border-radius: 20px;
+            }
+        """)
+        
+        if parent:
+            self.resize(parent.size())
+            self.move(0, 0)
+            
+            # Heavy background blur on the central widget behind the overlay
+            if hasattr(self.parent_gui, 'centralWidget'):
+                self.bg_blur = QGraphicsBlurEffect()
+                self.bg_blur.setBlurRadius(25)
+                self.parent_gui.centralWidget().setGraphicsEffect(self.bg_blur)
+            
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(40, 40, 40, 40)
+        
+        # Header
+        header_layout = QHBoxLayout()
+        title = QLabel(f"{pipeline_type} Flowchart")
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #F5EDE0; background: transparent;")
+        
+        self.btn_close = AnimatedButton("Close Flowchart", "rgba(234, 33, 67, 0.2)", "rgba(234, 33, 67, 0.4)", "rgba(234, 33, 67, 0.1)", "rgba(255, 255, 255, 0.9)", "rgba(234, 33, 67, 0.5)")
+        self.btn_close.clicked.connect(self.close_animated)
+        
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addWidget(self.btn_close)
+        self.main_layout.addLayout(header_layout)
+        
+        # Split layout for navigation and content
+        self.split_layout = QHBoxLayout()
+        self.split_layout.setSpacing(40)
+        
+        # --- LEFT PANEL: Flowchart Navigation ---
+        self.scroll = QScrollArea()
+        self.scroll.setFixedWidth(260)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll.setStyleSheet("""
+            QScrollArea { background: transparent; border: none; } 
+            QWidget#canvas_container { background: transparent; }
+            QScrollBar:vertical {
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                background: rgba(0, 0, 0, 0.3);
+                width: 10px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background: rgba(255, 255, 255, 0.5);
+                border-radius: 5px;
+            }
+        """)
+        
+        self.canvas = QWidget()
+        self.canvas.setObjectName("canvas_container")
+        self.canvas_layout = QVBoxLayout(self.canvas)
+        self.canvas_layout.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
+        self.canvas_layout.setSpacing(15)
+        self.canvas_layout.setContentsMargins(10, 10, 10, 10)
+        
+        for step in self.steps:
+            btn = QPushButton(step)
+            btn.setFixedSize(200, 80)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: rgba(255, 255, 255, 0.08);
+                    color: rgba(255, 255, 255, 0.9);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-radius: 20px;
+                    font-weight: 600;
+                    font-size: 15px;
+                }
+                QPushButton:hover {
+                    background-color: rgba(255, 255, 255, 0.15);
+                    color: #FFFFFF;
+                }
+            """)
+            btn.clicked.connect(lambda checked, s=step: self.show_description(s))
+            self.canvas_layout.addWidget(btn)
+            
+            if step != self.steps[-1]:
+                arrow = QLabel("⬇")
+                arrow.setAlignment(Qt.AlignCenter)
+                arrow.setStyleSheet("color: rgba(255, 255, 255, 0.5); font-size: 28px; font-weight: bold; background: transparent;")
+                self.canvas_layout.addWidget(arrow)
+                
+        self.scroll.setWidget(self.canvas)
+        self.split_layout.addWidget(self.scroll)
+        
+        # --- RIGHT PANEL: Details View (Fixed Container) ---
+        self.details_container = QWidget()
+        # The details_container will hold the view_details absolutely positioned inside it
+        self.split_layout.addWidget(self.details_container)
+        
+        self.main_layout.addLayout(self.split_layout)
+        
+        # Build the actual detail card (parented to details_container, but no layout so we can animate geometry)
+        self.view_details = QFrame(self.details_container)
+        self.view_details.hide() # Hidden by default
+        self.view_details.setStyleSheet("""
+            QFrame {
+                background-color: rgba(20, 20, 30, 0.6);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 20px;
+            }
+        """)
+        
+        # We need an opacity effect to animate opacity of the detail card
+        self.opacity_effect = QGraphicsOpacityEffect(self.view_details)
+        self.view_details.setGraphicsEffect(self.opacity_effect)
+        
+        details_layout = QVBoxLayout(self.view_details)
+        details_layout.setContentsMargins(60, 60, 60, 60)
+        
+        self.detail_title = QLabel("")
+        self.detail_title.setStyleSheet("font-size: 36px; font-weight: bold; color: #FFFFFF; border: none; background: transparent;")
+        
+        self.detail_desc = QLabel("")
+        self.detail_desc.setWordWrap(True)
+        self.detail_desc.setStyleSheet("font-size: 20px; color: rgba(255, 255, 255, 0.8); line-height: 1.8; border: none; background: transparent;")
+        
+        details_layout.addWidget(self.detail_title)
+        details_layout.addSpacing(30)
+        details_layout.addWidget(self.detail_desc)
+        details_layout.addStretch()
+        
+        # Initial fade in of the entire window
+        self.setWindowOpacity(0.0)
+        self.anim = QPropertyAnimation(self, b"windowOpacity")
+        self.anim.setDuration(400)
+        self.anim.setStartValue(0.0)
+        self.anim.setEndValue(1.0)
+        self.anim.setEasingCurve(QEasingCurve.InOutQuad)
+        self.anim.start()
+    def show_description(self, step):
+        self.detail_title.setText(step)
+        self.detail_desc.setText(TOOL_DESCRIPTIONS.get(step, "Description not available."))
+        
+        self.view_details.show()
+        
+        # Ensure it has the full size of its container to prevent text squishing
+        target_rect = self.details_container.rect()
+        self.view_details.resize(target_rect.size())
+        
+        # Start positioned slightly lower for a slide-up effect
+        start_pos = target_rect.topLeft()
+        start_pos.setY(start_pos.y() + 40)
+        end_pos = target_rect.topLeft()
+        
+        self.pos_anim = QPropertyAnimation(self.view_details, b"pos")
+        self.pos_anim.setDuration(400)
+        self.pos_anim.setStartValue(start_pos)
+        self.pos_anim.setEndValue(end_pos)
+        self.pos_anim.setEasingCurve(QEasingCurve.OutCubic)
+        
+        self.opac_anim = QPropertyAnimation(self.opacity_effect, b"opacity")
+        self.opac_anim.setDuration(400)
+        self.opac_anim.setStartValue(0.0)
+        self.opac_anim.setEndValue(1.0)
+        self.opac_anim.setEasingCurve(QEasingCurve.InOutQuad)
+        
+        self.pos_anim.start()
+        self.opac_anim.start()
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.view_details.isVisible():
+            self.view_details.setGeometry(self.details_container.rect())
+            
+    def close_animated(self):
+        self.anim = QPropertyAnimation(self, b"windowOpacity")
+        self.anim.setDuration(300)
+        self.anim.setStartValue(1.0)
+        self.anim.setEndValue(0.0)
+        self.anim.setEasingCurve(QEasingCurve.InOutQuad)
+        self.anim.finished.connect(self._finalize_close)
+        self.anim.start()
+        
+    def _finalize_close(self):
+        if self.parent_gui and hasattr(self.parent_gui, 'centralWidget'):
+            self.parent_gui.centralWidget().setGraphicsEffect(None)
+        self.deleteLater()
 class PipelineTab(QWidget):
     def __init__(self, pipeline_type, parent=None):
         super().__init__(parent)
         self.pipeline_type = pipeline_type
         self.parent_gui = parent
         self.setup_ui()
-
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
         layout.setContentsMargins(20, 20, 20, 20)
-
         input_group = QGroupBox("Configuration")
-        i_layout = QVBoxLayout()
+        i_layout = QGridLayout()
         i_layout.setSpacing(10)
-
-        name_layout = QHBoxLayout()
+        i_layout.setColumnStretch(1, 1)
         name_label = QLabel("Project Name:" if "ChIP" in self.pipeline_type else "Cohort Name:")
-        name_label.setFixedWidth(150)
         self.input_name = QLineEdit()
         self.input_name.setPlaceholderText("e.g. project_01")
-        name_layout.addWidget(name_label)
-        name_layout.addWidget(self.input_name)
-        i_layout.addLayout(name_layout)
-
-        ref_name_layout = QHBoxLayout()
+        i_layout.addWidget(name_label, 0, 0)
+        i_layout.addWidget(self.input_name, 0, 1, 1, 2)
         ref_name_label = QLabel("Reference Base Name:")
-        ref_name_label.setFixedWidth(150)
         self.input_ref_name = QLineEdit("hg38")
         self.input_ref_name.setPlaceholderText("e.g. hg38 (no .fasta)")
-        ref_name_layout.addWidget(ref_name_label)
-        ref_name_layout.addWidget(self.input_ref_name)
-        i_layout.addLayout(ref_name_layout)
-
-        ref_dir_layout = QHBoxLayout()
+        i_layout.addWidget(ref_name_label, 1, 0)
+        i_layout.addWidget(self.input_ref_name, 1, 1, 1, 2)
         ref_dir_label = QLabel("Reference Folder:")
-        ref_dir_label.setFixedWidth(150)
         self.input_ref_dir = QLineEdit()
         self.input_ref_dir.setPlaceholderText("Folder with reference fasta and indexes")
-        self.btn_browse_ref = QPushButton("Browse...")
+        self.btn_browse_ref = AnimatedButton("Browse...")
         self.btn_browse_ref.clicked.connect(self.browse_ref)
-        ref_dir_layout.addWidget(ref_dir_label)
-        ref_dir_layout.addWidget(self.input_ref_dir)
-        ref_dir_layout.addWidget(self.btn_browse_ref)
-        i_layout.addLayout(ref_dir_layout)
-
+        i_layout.addWidget(ref_dir_label, 2, 0)
+        i_layout.addWidget(self.input_ref_dir, 2, 1)
+        i_layout.addWidget(self.btn_browse_ref, 2, 2)
+        current_row = 3
         if "Germline" in self.pipeline_type or "ChIP" in self.pipeline_type:
             self.check_prebuilt = QCheckBox("Pre-built BWA indexes available in Reference Folder")
             self.check_prebuilt.setChecked(True)
             self.check_prebuilt.stateChanged.connect(self.toggle_build_btn)
-            i_layout.addWidget(self.check_prebuilt)
-
-        fastq_dir_layout = QHBoxLayout()
+            i_layout.addWidget(self.check_prebuilt, current_row, 1, 1, 2)
+            current_row += 1
+        if "RNA-seq" in self.pipeline_type:
+            gtf_label = QLabel("Annotation (GTF):")
+            self.input_gtf = QLineEdit()
+            self.input_gtf.setPlaceholderText("Path to .gtf file (Optional if in ref dir)")
+            self.btn_browse_gtf = AnimatedButton("Browse...")
+            self.btn_browse_gtf.clicked.connect(self.browse_gtf)
+            i_layout.addWidget(gtf_label, current_row, 0)
+            i_layout.addWidget(self.input_gtf, current_row, 1)
+            i_layout.addWidget(self.btn_browse_gtf, current_row, 2)
+            current_row += 1
         fastq_dir_label = QLabel("FASTQ Folder:")
-        fastq_dir_label.setFixedWidth(150)
         self.input_fastq_dir = QLineEdit()
         self.input_fastq_dir.setPlaceholderText("Folder with *_R1.fastq.gz and *_R2.fastq.gz")
-        self.btn_browse_fastq = QPushButton("Browse...")
+        self.btn_browse_fastq = AnimatedButton("Browse...")
         self.btn_browse_fastq.clicked.connect(self.browse_fastq)
-        fastq_dir_layout.addWidget(fastq_dir_label)
-        fastq_dir_layout.addWidget(self.input_fastq_dir)
-        fastq_dir_layout.addWidget(self.btn_browse_fastq)
-        i_layout.addLayout(fastq_dir_layout)
-
+        i_layout.addWidget(fastq_dir_label, current_row, 0)
+        i_layout.addWidget(self.input_fastq_dir, current_row, 1)
+        i_layout.addWidget(self.btn_browse_fastq, current_row, 2)
+        current_row += 1
         if "ChIP" in self.pipeline_type:
-            sample_layout = QHBoxLayout()
             sample_label = QLabel("Samplesheet (Optional):")
-            sample_label.setFixedWidth(150)
             self.input_sample = QLineEdit()
             self.input_sample.setPlaceholderText("Path to samplesheet.csv (for controls)")
-            self.btn_browse_sample = QPushButton("Browse...")
+            self.btn_browse_sample = AnimatedButton("Browse...")
             self.btn_browse_sample.clicked.connect(self.browse_sample)
-            sample_layout.addWidget(sample_label)
-            sample_layout.addWidget(self.input_sample)
-            sample_layout.addWidget(self.btn_browse_sample)
-            i_layout.addLayout(sample_layout)
-
-        if "GPU" in self.pipeline_type:
+            i_layout.addWidget(sample_label, current_row, 0)
+            i_layout.addWidget(self.input_sample, current_row, 1)
+            i_layout.addWidget(self.btn_browse_sample, current_row, 2)
+            current_row += 1
+        if self.pipeline_type != "scRNA-seq":
+            self.check_gpu = QCheckBox("Use GPU Acceleration (if available)")
+            self.check_gpu.setChecked(False)
+            
+            # Disable checkbox if no GPU is detected
+            _, vram_total = get_vram()
+            if vram_total is None:
+                self.check_gpu.setEnabled(False)
+                self.check_gpu.setToolTip("No NVIDIA GPU detected on this system.")
+                
+            i_layout.addWidget(self.check_gpu, current_row, 1, 1, 2)
+            current_row += 1
+            
             self.check_low_mem = QCheckBox("Low Memory Mode (<24GB VRAM)")
             self.check_low_mem.setChecked(False)
-            i_layout.addWidget(self.check_low_mem)
+            self.check_low_mem.setEnabled(False)
+            self.check_gpu.stateChanged.connect(lambda state: self.check_low_mem.setEnabled(state == 2))
+            i_layout.addWidget(self.check_low_mem, current_row, 1, 1, 2)
+            current_row += 1
             
         import os
         self.check_singularity = QCheckBox("Use Singularity (HPC Mode)")
@@ -438,130 +754,84 @@ class PipelineTab(QWidget):
             self.check_singularity.setVisible(True)
         else:
             self.check_singularity.setVisible(False)
-        i_layout.addWidget(self.check_singularity)
-
+        i_layout.addWidget(self.check_singularity, current_row, 1, 1, 2)
         input_group.setLayout(i_layout)
         layout.addWidget(input_group)
-
         action_layout = QHBoxLayout()
         
+        self.btn_flowchart = AnimatedButton(" View Flowchart") # Default to Secondary
+        icon_flowchart = APP_ROOT / "interface" / "play.png" # reuse icon or leave empty
+        self.btn_flowchart.clicked.connect(self.show_flowchart)
+        action_layout.addWidget(self.btn_flowchart)
+        
         if "Germline" in self.pipeline_type or "ChIP" in self.pipeline_type:
-            self.btn_build = QPushButton("Build Reference Indexes")
-            self.btn_build.setStyleSheet("""
-QPushButton {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffb703, stop:1 #fb8500);
-    color: white; font-weight: bold; padding: 12px 24px; border-radius: 20px; border: none;
-}
-QPushButton:hover {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffc733, stop:1 #fc9520);
-}
-QPushButton:pressed {
-    background: #d97706;
-}
-QPushButton:disabled {
-    background: #282828; color: #666666;
-}
-""")
+            # Build indexes - Warning style
+            self.btn_build = AnimatedButton("Build Reference Indexes", "rgba(232, 149, 88, 0.3)", "rgba(232, 149, 88, 0.5)", "rgba(232, 149, 88, 0.1)", "rgba(255, 255, 255, 0.9)", "rgba(232, 149, 88, 0.5)")
             self.btn_build.setEnabled(False)
             self.btn_build.clicked.connect(self.build_indexes)
             action_layout.addWidget(self.btn_build)
-
-        self.btn_run = QPushButton(" Run Pipeline")
+        # Run pipeline - Brand style
+        self.btn_run = AnimatedButton(" Run Pipeline", "rgba(24, 86, 255, 0.3)", "rgba(24, 86, 255, 0.5)", "rgba(24, 86, 255, 0.1)", "rgba(255, 255, 255, 0.9)", "rgba(24, 86, 255, 0.5)")
         icon_play = APP_ROOT / "interface" / "play.png"
         if os.path.exists(icon_play): self.btn_run.setIcon(QIcon(str(icon_play)))
         else: self.btn_run.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
-        self.btn_run.setStyleSheet("""
-QPushButton {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #7b68ee, stop:1 #5c5cff);
-    color: white; font-weight: bold; padding: 12px 24px; border-radius: 20px; border: none;
-}
-QPushButton:hover {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #8b78fe, stop:1 #6c6cff);
-}
-QPushButton:pressed {
-    background: #5a48ce;
-}
-QPushButton:disabled {
-    background: #282828; color: #555555;
-}
-""")
+        
         self.btn_run.clicked.connect(self.run_pipeline)
         
-        if self.pipeline_type == "Germline GPU":
-            vram_free, vram_total = get_vram()
-            if vram_total is not None and vram_total < 15500:
-                self.btn_run.setEnabled(False)
-                self.btn_run.setText("Requires >16GB VRAM")
-                
-        action_layout.addWidget(self.btn_run)
 
-        self.btn_stop = QPushButton(" Stop")
+        action_layout.addWidget(self.btn_run)
+        # Stop - Danger style
+        self.btn_stop = AnimatedButton(" Stop", "rgba(234, 33, 67, 0.2)", "rgba(234, 33, 67, 0.4)", "rgba(234, 33, 67, 0.1)", "rgba(255, 255, 255, 0.9)", "rgba(234, 33, 67, 0.5)")
         icon_stop = APP_ROOT / "interface" / "stop.png"
         if os.path.exists(icon_stop): self.btn_stop.setIcon(QIcon(str(icon_stop)))
         else: self.btn_stop.setIcon(self.style().standardIcon(QStyle.SP_MediaStop))
-        self.btn_stop.setStyleSheet("""
-QPushButton {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff7f50, stop:1 #ff4d4d);
-    color: white; font-weight: bold; padding: 12px 24px; border-radius: 20px; border: none;
-}
-QPushButton:hover {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8f60, stop:1 #ff5d5d);
-}
-QPushButton:pressed {
-    background: #df5f30;
-}
-QPushButton:disabled {
-    background: #282828; color: #555555;
-}
-""")
+        
         self.btn_stop.setEnabled(False)
         self.btn_stop.clicked.connect(self.parent_gui.stop_process)
         action_layout.addWidget(self.btn_stop)
-
         layout.addLayout(action_layout)
         layout.addStretch()
-
+    def show_flowchart(self):
+        self.flowchart = FlowchartViewer(self.pipeline_type, self.parent_gui)
+        self.flowchart.show()
     def browse_ref(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Reference Folder")
         if folder: self.input_ref_dir.setText(os.path.normpath(folder))
-
+    def browse_gtf(self):
+        from PySide6.QtWidgets import QFileDialog
+        f, _ = QFileDialog.getOpenFileName(self, "Select GTF File", "", "GTF Files (*.gtf *.gff)")
+        if f:
+            self.input_gtf.setText(self.parent_gui.to_windows_path(f))
     def browse_fastq(self):
         folder = QFileDialog.getExistingDirectory(self, "Select FASTQ Folder")
         if folder: self.input_fastq_dir.setText(os.path.normpath(folder))
-
     def browse_sample(self):
         file, _ = QFileDialog.getOpenFileName(self, "Select Samplesheet", "", "CSV Files (*.csv)")
         if file: self.input_sample.setText(os.path.normpath(file))
-
     def toggle_build_btn(self, state):
         if hasattr(self, 'btn_build'):
             if state == 2:
                 self.btn_build.setEnabled(False)
             else:
                 self.btn_build.setEnabled(True)
-
     def build_indexes(self):
         if not self.input_ref_name.text() or not self.input_ref_dir.text():
             QMessageBox.warning(self, "Error", "Reference Name and Folder are required.")
             return
-
         ref_dir = self.parent_gui.to_linux_path(self.input_ref_dir.text().strip())
         ref_name = self.input_ref_name.text().strip()
         script = APP_ROOT / "pipelines" / "germline_cpu" / "Germline_CPU_reference_builder.sh"
         
         self.parent_gui.start_process(["bash", str(script).replace("\\", "/"), ref_dir, ref_name], self.btn_run, self.btn_stop, self.btn_build)
-
     def run_pipeline(self):
         if not all([self.input_name.text(), self.input_ref_name.text(), self.input_ref_dir.text(), self.input_fastq_dir.text()]):
             QMessageBox.warning(self, "Error", "Name, Reference, and FASTQ fields are required.")
             return
-
         name = self.input_name.text().strip()
         ref_dir = self.parent_gui.to_linux_path(self.input_ref_dir.text().strip())
         ref_name = self.input_ref_name.text().strip()
         fastq_dir = self.parent_gui.to_linux_path(self.input_fastq_dir.text().strip())
         res_dir = self.parent_gui.to_linux_path(self.parent_gui.input_out_dir.text().strip())
-
         env = {
             "REF_DIR": ref_dir,
             "REF_NAME": ref_name,
@@ -569,40 +839,65 @@ QPushButton:disabled {
             "MAX_CPUS": str(self.parent_gui.alloc_cpus),
             "MAX_MEM_GB": str(self.parent_gui.alloc_mem)
         }
-
+        if hasattr(self, 'input_gtf'):
+            gtf_path = self.parent_gui.to_linux_path(self.input_gtf.text().strip())
+            if gtf_path:
+                env["REF_GTF"] = gtf_path
         if "Germline" in self.pipeline_type or "ChIP" in self.pipeline_type:
             env["SKIP_INDEXING"] = "1" if self.check_prebuilt.isChecked() else "0"
             
-        if "GPU" in self.pipeline_type:
-            if self.check_low_mem.isChecked():
+        use_gpu = False
+        if hasattr(self, 'check_gpu') and self.check_gpu.isChecked():
+            use_gpu = True
+            if hasattr(self, 'check_low_mem') and self.check_low_mem.isChecked():
                 env["LOW_MEMORY"] = "1"
-
-        if self.pipeline_type == "Germline CPU":
-            script = APP_ROOT / "pipelines" / "germline_cpu" / "Germline_CPU_run.sh"
+                
+        if self.pipeline_type == "Germline":
+            if use_gpu:
+                script = APP_ROOT / "pipelines" / "germline_gpu" / "Germline_pipeline_run.sh"
+                singularity_num = "2"
+            else:
+                script = APP_ROOT / "pipelines" / "germline_cpu" / "Germline_CPU_run.sh"
+                singularity_num = "1"
             cmd = ["bash", str(script).replace("\\", "/"), name, fastq_dir]
-            singularity_num = "1"
-        elif self.pipeline_type == "Germline GPU":
-            script = APP_ROOT / "pipelines" / "germline_gpu" / "Germline_pipeline_run.sh"
-            cmd = ["bash", str(script).replace("\\", "/"), name, fastq_dir]
-            singularity_num = "2"
-        elif self.pipeline_type == "ChIP-seq GPU":
-            script = APP_ROOT / "pipelines" / "chipseq" / "CHIPseq_GPU_run.sh"
+            
+        elif self.pipeline_type == "ChIP-seq":
+            if use_gpu:
+                script = APP_ROOT / "pipelines" / "chipseq" / "CHIPseq_GPU_run.sh"
+                singularity_num = "3"
+            else:
+                script = APP_ROOT / "pipelines" / "chipseq_cpu" / "CHIPseq_CPU_run.sh"
+                singularity_num = "4"
             sample = self.parent_gui.to_linux_path(self.input_sample.text().strip()) if self.input_sample.text().strip() else ""
             cmd = ["bash", str(script).replace("\\", "/"), name, fastq_dir, sample]
-            singularity_num = "3"
-        elif self.pipeline_type == "ChIP-seq CPU":
-            script = APP_ROOT / "pipelines" / "chipseq_cpu" / "CHIPseq_CPU_run.sh"
-            sample = self.parent_gui.to_linux_path(self.input_sample.text().strip()) if self.input_sample.text().strip() else ""
-            cmd = ["bash", str(script).replace("\\", "/"), name, fastq_dir, sample]
-            singularity_num = "4"
-
+            
+        elif self.pipeline_type == "RNA-seq":
+            if use_gpu:
+                script = APP_ROOT / "pipelines" / "rnaseq_gpu" / "RNAseq_GPU_run.sh"
+                singularity_num = "6"
+            else:
+                script = APP_ROOT / "pipelines" / "rnaseq_cpu" / "RNAseq_CPU_run.sh"
+                singularity_num = "5"
+            cmd = ["bash", str(script).replace("\\\\", "/"), name, fastq_dir]
+            
+        elif self.pipeline_type == "Somatic":
+            if use_gpu:
+                script = APP_ROOT / "pipelines" / "somatic_gpu" / "Somatic_GPU_run.sh"
+                singularity_num = "8"
+            else:
+                script = APP_ROOT / "pipelines" / "somatic_cpu" / "Somatic_CPU_run.sh"
+                singularity_num = "7"
+            cmd = ["bash", str(script).replace("\\", "/"), name, fastq_dir]
+            
+        elif self.pipeline_type == "scRNA-seq":
+            script = APP_ROOT / "pipelines" / "scrnaseq_cpu" / "scRNAseq_CPU_run.sh"
+            cmd = ["bash", str(script).replace("\\", "/"), name, fastq_dir]
+            singularity_num = "9"
         if hasattr(self, 'check_singularity') and self.check_singularity.isChecked() and self.check_singularity.isVisible():
             script = APP_ROOT / "run_singularity.sh"
             cmd = ["bash", str(script).replace("\\", "/"), singularity_num, fastq_dir, ref_dir, res_dir, name]
-
         btn_bld = self.btn_build if hasattr(self, 'btn_build') else None
         self.parent_gui.start_process(cmd, self.btn_run, self.btn_stop, btn_bld, env)
-
 class TitleBar(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
@@ -652,7 +947,6 @@ class TitleBar(QWidget):
         self.btn_close.clicked.connect(self.parent_gui.close)
         
         self.start_pos = None
-
     def toggle_max(self):
         if self.parent_gui.isMaximized():
             self.parent_gui.showNormal()
@@ -660,28 +954,25 @@ class TitleBar(QWidget):
         else:
             self.parent_gui.showMaximized()
             self.btn_max.setText("❐")
-
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.start_pos = event.globalPosition().toPoint()
-
     def mouseMoveEvent(self, event):
         if self.start_pos is not None:
             delta = event.globalPosition().toPoint() - self.start_pos
             self.parent_gui.move(self.parent_gui.pos() + delta)
             self.start_pos = event.globalPosition().toPoint()
-
     def mouseReleaseEvent(self, event):
         self.start_pos = None
         
     def mouseDoubleClickEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.toggle_max()
-
 class NextflowGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
+        self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowTitle("Nextflow Genomics GUI")
         self.resize(1000, 800)
         
@@ -699,24 +990,12 @@ class NextflowGUI(QMainWindow):
         avail_mem_gb = int(psutil.virtual_memory().available / (1024**3))
         self.alloc_cpus = max(1, int(sys_cpus * 0.75))
         self.alloc_mem = max(2, int(avail_mem_gb * 0.75))
-
         self.process = None
         self.active_run_btn = None
         self.active_stop_btn = None
         self.active_build_btn = None
-        
-        self.mouse_pos = QPoint(-1000, -1000)
-        self.target_mouse_pos = QPoint(-1000, -1000)
-        QApplication.instance().installEventFilter(self)
-        
-        self.time_step = 0
-        self.anim_timer = QTimer(self)
-        self.anim_timer.timeout.connect(self.update_animation)
-        self.anim_timer.start(33)  # ~30 FPS
-        
         self.setup_ui()
         QTimer.singleShot(1000, self.check_gpu_visibility)
-
     def check_gpu_visibility(self):
         try:
             cmd = ["docker", "run", "--rm", "--runtime=nvidia", "nvcr.io/nvidia/clara/clara-parabricks:4.7.0-1", "nvidia-smi"]
@@ -729,15 +1008,14 @@ class NextflowGUI(QMainWindow):
         except Exception as e:
             # Don't show an error if Docker is just not running, another part of the app might handle that
             pass
-
     def setup_ui(self):
         main_widget = QWidget()
         main_widget.setObjectName("main_widget")
-        main_widget.setStyleSheet("#main_widget { border: 1px solid rgba(255,255,255,20); }")
+        main_widget.setStyleSheet("#main_widget { background-color: #000000; border: 1px solid #333333; border-radius: 20px; }")
         self.setCentralWidget(main_widget)
         
         wrapper_layout = QVBoxLayout(main_widget)
-        wrapper_layout.setContentsMargins(0, 0, 0, 0)
+        wrapper_layout.setContentsMargins(1, 1, 1, 1)
         wrapper_layout.setSpacing(0)
         
         self.title_bar = TitleBar(self)
@@ -748,26 +1026,14 @@ class NextflowGUI(QMainWindow):
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(15)
         wrapper_layout.addWidget(content_widget)
-
         top_bar = QHBoxLayout()
         title = QLabel("Genomics Pipeline Manager")
         title.setStyleSheet("font-size: 24px; font-weight: bold; color: #ffffff; letter-spacing: -0.5px;")
         
-        self.btn_toggle_console = QPushButton(" Show Terminal")
+        self.btn_toggle_console = AnimatedButton(" Show Terminal")
         icon_term = APP_ROOT / "interface" / "terminal.png"
         if os.path.exists(icon_term): self.btn_toggle_console.setIcon(QIcon(str(icon_term)))
         else: self.btn_toggle_console.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
-        self.btn_toggle_console.setStyleSheet("""
-QPushButton {
-    background: #282828; color: white; font-weight: bold; padding: 12px 24px; border-radius: 20px; border: none;
-}
-QPushButton:hover {
-    background: #3e3e3e;
-}
-QPushButton:pressed {
-    background: #1a1a1a;
-}
-""")
         self.btn_toggle_console.setCheckable(True)
         self.btn_toggle_console.clicked.connect(self.toggle_console)
         
@@ -775,7 +1041,6 @@ QPushButton:pressed {
         top_bar.addStretch()
         top_bar.addWidget(self.btn_toggle_console)
         main_layout.addLayout(top_bar)
-
         out_group = QGroupBox("Global Output Directory")
         out_layout = QHBoxLayout()
         out_label = QLabel("Save Results To:")
@@ -788,25 +1053,43 @@ QPushButton:pressed {
         out_layout.addWidget(self.btn_browse_out)
         out_group.setLayout(out_layout)
         main_layout.addWidget(out_group)
-
-        self.tabs = QTabWidget()
+        self.tabs_layout = QHBoxLayout()
+        self.sidebar_list = QListWidget()
+        self.sidebar_list.setFixedWidth(220)
+        self.tabs_stack = QStackedWidget()
+        
+        self.tabs_layout.addWidget(self.sidebar_list)
+        self.tabs_layout.addWidget(self.tabs_stack)
+        
+        self.sidebar_list.currentRowChanged.connect(self.tabs_stack.setCurrentIndex)
         
         self.tab_monitor = ResourceMonitor(self)
         icon_mon = APP_ROOT / "interface" / "monitor.png"
-        if os.path.exists(icon_mon): self.tabs.addTab(self.tab_monitor, QIcon(str(icon_mon)), " Resource Monitor")
-        else: self.tabs.addTab(self.tab_monitor, self.style().standardIcon(QStyle.SP_ComputerIcon), " Resource Monitor")
+        item_monitor = QListWidgetItem(" Resource Monitor")
+        item_monitor.setForeground(QColor(255, 255, 255, 200))
+        if os.path.exists(icon_mon): item_monitor.setIcon(QIcon(str(icon_mon)))
+        else: item_monitor.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
+        self.sidebar_list.addItem(item_monitor)
+        self.tabs_stack.addWidget(self.tab_monitor)
         
-        self.tab_germline_cpu = PipelineTab("Germline CPU", self)
-        self.tab_germline_gpu = PipelineTab("Germline GPU", self)
-        self.tab_chipseq_cpu = PipelineTab("ChIP-seq CPU", self)
-        self.tab_chipseq_gpu = PipelineTab("ChIP-seq GPU", self)
+        self.tab_germline = PipelineTab("Germline", self)
+        self.tab_chipseq = PipelineTab("ChIP-seq", self)
+        self.tab_rnaseq = PipelineTab("RNA-seq", self)
+        self.tab_somatic = PipelineTab("Somatic", self)
+        self.tab_scrnaseq = PipelineTab("scRNA-seq", self)
         
-        self.tabs.addTab(self.tab_germline_cpu, "Germline CPU")
-        self.tabs.addTab(self.tab_germline_gpu, "Germline GPU")
-        self.tabs.addTab(self.tab_chipseq_cpu, "ChIP-seq CPU")
-        self.tabs.addTab(self.tab_chipseq_gpu, "ChIP-seq GPU")
-        main_layout.addWidget(self.tabs)
-
+        for name, widget in [
+            ("Germline VC", self.tab_germline),
+            ("ChIP-seq", self.tab_chipseq),
+            ("RNA-seq", self.tab_rnaseq),
+            ("Somatic VC", self.tab_somatic),
+            ("scRNA-seq", self.tab_scrnaseq)
+        ]:
+            item = QListWidgetItem(name)
+            self.sidebar_list.addItem(item)
+            self.tabs_stack.addWidget(widget)
+            
+        main_layout.addLayout(self.tabs_layout)
         # Create a detached standalone window for the console
         self.console_window = QDialog(self)
         self.console_window.setWindowTitle("Pipeline Execution Terminal")
@@ -851,17 +1134,14 @@ QPushButton:pressed {
         prog_layout.addWidget(self.progress_bar)
         prog_layout.addWidget(self.lbl_status)
         main_layout.addLayout(prog_layout)
-
         bottom_layout = QHBoxLayout()
         bottom_layout.addStretch()
         size_grip = QSizeGrip(self)
         bottom_layout.addWidget(size_grip)
         wrapper_layout.addLayout(bottom_layout)
-
     def browse_out(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Output Directory")
         if folder: self.input_out_dir.setText(os.path.normpath(folder))
-
     def toggle_console(self):
         is_visible = self.btn_toggle_console.isChecked()
         if is_visible:
@@ -892,37 +1172,30 @@ QPushButton:pressed {
     background: #1a1a1a;
 }
 """)
-
     def to_linux_path(self, path_str):
         path = path_str.replace('\\', '/')
         if len(path) > 1 and path[1] == ':':
             drive = path[0].lower()
             path = f"/mnt/{drive}{path[2:]}"
         return path
-
     def append_console(self, text):
         self.console.moveCursor(QTextCursor.End)
         self.console.insertPlainText(text)
         self.console.moveCursor(QTextCursor.End)
-
     def start_process(self, command, run_btn, stop_btn, build_btn=None, env_dict=None):
         if self.process and self.process.state() == QProcess.Running:
             QMessageBox.warning(self, "Warning", "A process is already running!")
             return
-
         if not self.btn_toggle_console.isChecked():
             self.btn_toggle_console.setChecked(True)
             self.toggle_console()
-
         self.console.clear()
         self.current_log = ""
         self.append_console(f"Running command: {' '.join(command)}\n")
         self.append_console("-" * 60 + "\n")
-
         self.active_run_btn = run_btn
         self.active_stop_btn = stop_btn
         self.active_build_btn = build_btn
-
         self.process = QProcess()
         env = QProcessEnvironment.systemEnvironment()
         if env_dict:
@@ -933,16 +1206,13 @@ QPushButton:pressed {
         self.process.readyReadStandardOutput.connect(self.handle_stdout)
         self.process.readyReadStandardError.connect(self.handle_stderr)
         self.process.finished.connect(self.process_finished)
-
         run_btn.setEnabled(False)
         if build_btn: build_btn.setEnabled(False)
         stop_btn.setEnabled(True)
-
         self.progress_bar.setRange(0, 0)
         self.lbl_status.setText("Initializing Nextflow environment...")
-
+        self.start_time = time.time()
         self.process.start(command[0], command[1:])
-
     def handle_stdout(self):
         data = self.process.readAllStandardOutput()
         text = bytes(data).decode("utf-8", errors="replace")
@@ -975,20 +1245,17 @@ QPushButton:pressed {
                     }
                     if tool in desc_map:
                         self.lbl_status.setText(desc_map[tool])
-
     def handle_stderr(self):
         data = self.process.readAllStandardError()
         text = bytes(data).decode("utf-8", errors="replace")
         self.current_log += text
         self.append_console(text)
-
     def process_finished(self, exit_code, exit_status):
         self.append_console("-" * 60 + "\n")
         self.append_console(f"Process finished with exit code {exit_code}\n")
         if self.active_run_btn: self.active_run_btn.setEnabled(True)
         if self.active_stop_btn: self.active_stop_btn.setEnabled(False)
         if self.active_build_btn: self.active_build_btn.setEnabled(True)
-
         if exit_code != 0:
             self.progress_bar.setRange(0, 100)
             self.progress_bar.setValue(0)
@@ -1019,14 +1286,18 @@ QPushButton:pressed {
             
             QMessageBox.critical(self, title, msg)
         else:
+            elapsed_time = time.time() - getattr(self, 'start_time', time.time())
+            mins, secs = divmod(int(elapsed_time), 60)
+            time_str = f"{mins}m {secs}s"
+            
             self.progress_bar.setRange(0, 100)
             self.progress_bar.setValue(100)
-            self.lbl_status.setText("Complete!")
+            self.lbl_status.setText(f"Complete! (Time taken: {time_str})")
             
             reply = QMessageBox.question(
                 self, 
                 "Success", 
-                "Pipeline execution completed successfully!\nDo you want to open the results folder?",
+                f"Pipeline execution completed successfully in {time_str}!\nDo you want to open the results folder?",
                 QMessageBox.Yes | QMessageBox.No, 
                 QMessageBox.Yes
             )
@@ -1040,78 +1311,10 @@ QPushButton:pressed {
                         subprocess.call(["open", res_path])
                     else:
                         subprocess.call(["xdg-open", res_path])
-
     def stop_process(self):
         if self.process and self.process.state() == QProcess.Running:
             self.append_console("\nStopping process...\n")
             self.process.kill()
-
-    def eventFilter(self, obj, event):
-        if event.type() == event.Type.MouseMove:
-            self.target_mouse_pos = self.mapFromGlobal(event.globalPosition().toPoint())
-            # self.update() is handled by the animation timer now
-        return super().eventFilter(obj, event)
-
-    def update_animation(self):
-        self.time_step += 0.02
-        
-        # Smoothly interpolate (lag) the mouse position towards the target
-        dx = self.target_mouse_pos.x() - self.mouse_pos.x()
-        dy = self.target_mouse_pos.y() - self.mouse_pos.y()
-        self.mouse_pos.setX(int(self.mouse_pos.x() + dx * 0.08))
-        self.mouse_pos.setY(int(self.mouse_pos.y() + dy * 0.08))
-        
-        self.update()
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        
-        # Solid dark background base
-        painter.fillRect(self.rect(), QColor(5, 5, 8))
-        
-        # We will use CompositionMode_Screen to blend the orbs to create a bright fluid glow
-        painter.setCompositionMode(QPainter.CompositionMode_Screen)
-        
-        w = self.width()
-        h = self.height()
-        
-        def add_smooth_stops(grad, r, g, b, max_alpha, steps=2000):
-            for i in range(steps + 1):
-                pos = i / steps
-                # Optional: use easing, but linear is fine for high step counts
-                alpha = int(max_alpha * (1.0 - pos))
-                grad.setColorAt(pos, QColor(r, g, b, alpha))
-        
-        # Orb 1: Deep Violet (Oscillating)
-        x1 = w * 0.5 + math.sin(self.time_step * 0.7) * (w * 0.3)
-        y1 = h * 0.5 + math.cos(self.time_step * 0.5) * (h * 0.3)
-        grad1 = QRadialGradient(x1, y1, 800)
-        add_smooth_stops(grad1, 138, 43, 226, 30, steps=2000)
-        painter.fillRect(self.rect(), grad1)
-        
-        # Orb 2: Bright Cyan (Oscillating counter-direction)
-        x2 = w * 0.5 + math.cos(self.time_step * 0.6) * (w * 0.4)
-        y2 = h * 0.5 + math.sin(self.time_step * 0.8) * (h * 0.4)
-        grad2 = QRadialGradient(x2, y2, 800)
-        add_smooth_stops(grad2, 0, 191, 255, 20, steps=2000)
-        painter.fillRect(self.rect(), grad2)
-        
-        # Orb 3: Magenta (Slow, central drift)
-        x3 = w * 0.5 + math.sin(self.time_step * 0.3) * (w * 0.2)
-        y3 = h * 0.5 + math.sin(self.time_step * 0.4) * (h * 0.2)
-        grad3 = QRadialGradient(x3, y3, 900)
-        add_smooth_stops(grad3, 255, 0, 128, 15, steps=2000)
-        painter.fillRect(self.rect(), grad3)
-        
-        # Orb 4: Mouse interactive glow (Deep Blue)
-        grad4 = QRadialGradient(self.mouse_pos, 700)
-        add_smooth_stops(grad4, 64, 114, 255, 25, steps=2000)
-        painter.fillRect(self.rect(), grad4)
-        
-        # Reset composition mode to standard for children widgets
-        painter.setCompositionMode(QPainter.CompositionMode_SourceOver)
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
